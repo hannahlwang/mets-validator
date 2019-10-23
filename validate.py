@@ -72,5 +72,26 @@ def validateXML(xmlin):
 	
 	print(validXmlArray)
 		
+def validateFileSecPaths(xmlin):
+
+	# open and read xml file
+	with open(xmlin, 'r') as xml_file:
+		xml_to_check = xml_file.read()
 	
+	# parse xml and get root
+	tree = etree.parse(StringIO(xml_to_check))
+	
+	root = tree.getroot()
+	
+	ns = {
+	'mets': 'http://www.loc.gov/METS/',
+	'xlink': 'http://www.w3.org/1999/xlink'
+	}
+	
+	for fileLoc in root.findall('./mets:fileSec/mets:fileGrp/mets:fileGrp/mets:file/mets:FLocat', ns):
+		attributes = fileLoc.attrib
+		for attribute in attributes:
+			print(attributes['{http://www.w3.org/1999/xlink}href'])
+		
 validateXML('wisconsinstatejournal_20190328_mets.xml')
+validateFileSecPaths('wisconsinstatejournal_20190328_mets.xml')
