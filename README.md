@@ -1,1 +1,1 @@
-"# mets-validator" 
+# mets-validator
