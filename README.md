@@ -1,6 +1,7 @@
 # mets-validator
 
 ## Steps
+
 1. Validate XML against METS schema
 2. Verify that all files in fileSec are present at paths
 3. Verify that each page (mets:div) in mets:structMap has a pdf, jpg, and alto file
@@ -14,7 +15,9 @@
 	- JPGs without technical metadata 
 	
 ## Final reporting output
+
 For each issue, include:
+
 	- Folder path (string)
 	- Title (string)
 	- Date issued (YYYY-MM-DD)
