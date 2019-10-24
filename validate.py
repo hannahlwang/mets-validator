@@ -72,7 +72,7 @@ def validateXML(xmlin):
 	
 	print(validXmlArray)
 		
-def validateFileSecPaths(xmlin):
+def buildFileSecList(xmlin):
 
 	# open and read xml file
 	with open(xmlin, 'r') as xml_file:
@@ -88,10 +88,15 @@ def validateFileSecPaths(xmlin):
 	'xlink': 'http://www.w3.org/1999/xlink'
 	}
 	
+	fileSecList = []
+	
 	for fileLoc in root.findall('./mets:fileSec/mets:fileGrp/mets:fileGrp/mets:file/mets:FLocat', ns):
 		attributes = fileLoc.attrib
-		for attribute in attributes:
-			print(attributes['{http://www.w3.org/1999/xlink}href'])
-		
+		fileLink = attributes['{http://www.w3.org/1999/xlink}href']
+		print(fileLink)
+		fileSecList.append(fileLink)
+	
+	print(fileSecList)
+	
 validateXML('wisconsinstatejournal_20190328_mets.xml')
-validateFileSecPaths('wisconsinstatejournal_20190328_mets.xml')
+buildFileSecList('wisconsinstatejournal_20190328_mets.xml')
