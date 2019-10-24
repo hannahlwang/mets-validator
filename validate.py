@@ -11,6 +11,7 @@
 from lxml import etree
 from io import StringIO
 from urllib.request import urlopen
+import sys
 
 # validate XML against METS XSD schema
 def validateXML(xmlin):
@@ -40,8 +41,10 @@ def validateXML(xmlin):
 		validXmlArray['well-formed'] = True
 
 	# check for file IO error
-	except IOError:
+	except IOError as err:
 		validXmlArray['io-ok'] = False
+		validXmlArray['io-error'] = str(err.error_log)
+		print(validXmlArray)
 
 	# check for XML syntax errors
 	except etree.XMLSyntaxError as err:
@@ -50,8 +53,10 @@ def validateXML(xmlin):
 		print(validXmlArray)
 		quit()
 
+	# check for any other unknown errors
 	except:
-		validXmlArray['unknown-error'] = True
+		validXmlArray['other-parsing-error'] = str(sys.exc_info())
+		print(validXmlArray)
 		quit()
 	
 	# validate against schema
@@ -66,7 +71,7 @@ def validateXML(xmlin):
 		quit()
 		
 	except:
-		validXmlArray['unknown-error'] = True
+		validXmlArray['other-validation-error'] = str(sys.exc_info())
 		print(validXmlArray)
 		quit()
 	
