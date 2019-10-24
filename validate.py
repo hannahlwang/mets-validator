@@ -72,7 +72,7 @@ def validateXML(xmlin):
 	
 	print(validXmlArray)
 		
-def buildFileSecList(xmlin):
+def buildFilePathList(xmlin):
 
 	# open and read xml file
 	with open(xmlin, 'r') as xml_file:
@@ -80,23 +80,27 @@ def buildFileSecList(xmlin):
 	
 	# parse xml and get root
 	tree = etree.parse(StringIO(xml_to_check))
-	
 	root = tree.getroot()
 	
+	# define XML namespaces
 	ns = {
 	'mets': 'http://www.loc.gov/METS/',
 	'xlink': 'http://www.w3.org/1999/xlink'
 	}
 	
-	fileSecList = []
+	# create list of file paths in the file section which will be used as input for validation
+	filePathList = []
 	
+	# locate all the mets:FLocat tags and add the href attributes to the file path list
 	for fileLoc in root.findall('./mets:fileSec/mets:fileGrp/mets:fileGrp/mets:file/mets:FLocat', ns):
 		attributes = fileLoc.attrib
-		fileLink = attributes['{http://www.w3.org/1999/xlink}href']
-		print(fileLink)
-		fileSecList.append(fileLink)
+		filePath = attributes['{http://www.w3.org/1999/xlink}href']
+		filePathList.append(filePath)
 	
-	print(fileSecList)
+	print(filePathList)
+
+def metsValidator(xmlin):
+	validateXML(xmlin)
+	buildFilePathList(xmlin)
 	
-validateXML('wisconsinstatejournal_20190328_mets.xml')
-buildFileSecList('wisconsinstatejournal_20190328_mets.xml')
+metsValidator('wisconsinstatejournal_20190328_mets.xml')
