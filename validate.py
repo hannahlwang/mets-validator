@@ -135,6 +135,48 @@ def buildDirStatusArray(pathlist):
 			dirStatusArray[filePath] = False
 	
 	print(dirStatusArray)
+
+def validateDerivs(xmlin):
+	# open and read xml file
+	with open(xmlin, 'r') as xml_file:
+		xml_to_check = xml_file.read()
+	
+	# parse xml and get root
+	tree = etree.parse(StringIO(xml_to_check))
+	root = tree.getroot()
+	
+	# define XML namespaces
+	ns = {
+	'mets': 'http://www.loc.gov/METS/'
+	}
+	
+	pageArray = {}
+	
+	# locate all the mets:FLocat tags and add the href attributes to the file path list
+	for physPage in root.findall('./mets:structMap/mets:div/mets:div', ns):
+		attributes = physPage.attrib
+		pageID = attributes['ID']
+		for filePointer in physPage.findall('./mets:fptr', ns):
+			ptrAttribs = filePointer.attrib
+			fileID = ptrAttribs['FILEID']
+			if 'PDF' in fileID:
+				pdfFile = fileID
+			elif 'JPG' in fileID:
+				jpgFile = fileID
+			elif 'ALTO' in fileID:
+				altoFile = fileID
+		
+		pageID = {
+			"pdf" : pdfFile,
+			"jpg" : jpgFile,
+			"alto" : altoFile
+		}
+		
+		pageArray = {
+			"page1" : pageID
+		}
+	
+	print(pageArray)
 	
 
 def validateFilePaths(xmlin):
@@ -144,5 +186,6 @@ def validateFilePaths(xmlin):
 def metsValidator(metsfile):
 	validateXML(metsfile)
 	validateFilePaths(metsfile)
+	validateDerivs(metsfile)
 	
 metsValidator('wisconsinstatejournal_20190328_mets.xml')
