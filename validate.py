@@ -12,6 +12,7 @@ from lxml import etree
 from io import StringIO
 from urllib.request import urlopen
 import sys
+import os
 
 # validate XML against METS XSD schema
 def validateXML(xmlin):
@@ -76,7 +77,8 @@ def validateXML(xmlin):
 		quit()
 	
 	print(validXmlArray)
-		
+
+# build list of file paths based on fileSec paths in METS
 def buildFilePathList(xmlin):
 
 	# open and read xml file
@@ -102,10 +104,45 @@ def buildFilePathList(xmlin):
 		filePath = attributes['{http://www.w3.org/1999/xlink}href']
 		filePathList.append(filePath)
 	
-	print(filePathList)
+	return filePathList
 
-def metsValidator(xmlin):
-	validateXML(xmlin)
-	buildFilePathList(xmlin)
+# check whether file paths in METS exist in package or not, build array of paths and statuses (boolean)
+def buildPathStatusArray(pathlist):
+	
+	pathStatusArray = {}
+
+	for filePath in pathlist:
+		pathStatusArray[filePath] = os.path.exists(filePath)
+	
+	print(pathStatusArray)
+
+
+# check whether file paths in package exist in METS or not, build array of paths and statuses (boolean)
+def buildDirStatusArray(pathlist):
+
+	dirList = []
+	
+	for root, dirs, files in os.walk('.'):
+		for name in files:
+			dirList.append(os.path.join(root,name).replace('\\','/'))
+	
+	dirStatusArray = {}
+	
+	for filePath in dirList:
+		if filePath in pathlist:
+			dirStatusArray[filePath] = True
+		else:
+			dirStatusArray[filePath] = False
+	
+	print(dirStatusArray)
+	
+
+def validateFilePaths(xmlin):
+	buildPathStatusArray(buildFilePathList(xmlin))
+	buildDirStatusArray(buildFilePathList(xmlin))
+
+def metsValidator(metsfile):
+	validateXML(metsfile)
+	validateFilePaths(metsfile)
 	
 metsValidator('wisconsinstatejournal_20190328_mets.xml')
