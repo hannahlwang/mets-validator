@@ -156,26 +156,43 @@ def validateDerivs(xmlin):
 	
 	pageArray = {}
 	
-	# locate all the mets:FLocat tags and add the href attributes to the file path list
+	derivStatusArray = {}
+	
+	# locate all the page tags in the structMap and create array with pdf, jpg, and alto files
 	for physPage in root.findall('./mets:structMap/mets:div/mets:div', ns):
+		
 		attributes = physPage.attrib
 		pageID = attributes['ID']
+		
+		pageArray[pageID] = {}
+		
+		derivStatusArray[pageID] = {}
+		
 		for filePointer in physPage.findall('./mets:fptr', ns):
 			fileID = filePointer.attrib['FILEID']
 			if 'PDF' in fileID:
-				pdfFile = fileID
+				pageArray[pageID]['pdf'] = fileID
 			elif 'JPG' in fileID:
-				jpgFile = fileID
+				pageArray[pageID]['jpg'] = fileID
 			elif 'ALTO' in fileID:
-				altoFile = fileID
+				pageArray[pageID]['alto'] = fileID
 		
-		pageArray[pageID] = {
-			"pdf" : pdfFile,
-			"jpg" : jpgFile,
-			"alto" : altoFile
-		}
+		if 'pdf' in pageArray[pageID]:
+			derivStatusArray[pageID]['pdf'] = True
+		elif 'pdf' not in pageArray[pageID]:
+			derivStatusArray[pageID]['pdf'] = False
+			
+		if 'jpg' in pageArray[pageID]:
+			derivStatusArray[pageID]['jpg'] = True
+		elif 'jpg' not in pageArray[pageID]:
+			derivStatusArray[pageID]['jpg'] = False
+			
+		if 'alto' in pageArray[pageID]:
+			derivStatusArray[pageID]['alto'] = True
+		elif 'alto' not in pageArray[pageID]:
+			derivStatusArray[pageID]['alto'] = False
 	
-	print(pageArray)
+	print(derivStatusArray)
 
 def metsValidator(metsfile):
 	validateXML(metsfile)
