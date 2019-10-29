@@ -136,6 +136,10 @@ def buildDirStatusArray(pathlist):
 	
 	print(dirStatusArray)
 
+def validateFilePaths(xmlin):
+	buildPathStatusArray(buildFilePathList(xmlin))
+	buildDirStatusArray(buildFilePathList(xmlin))
+
 def validateDerivs(xmlin):
 	# open and read xml file
 	with open(xmlin, 'r') as xml_file:
@@ -157,8 +161,7 @@ def validateDerivs(xmlin):
 		attributes = physPage.attrib
 		pageID = attributes['ID']
 		for filePointer in physPage.findall('./mets:fptr', ns):
-			ptrAttribs = filePointer.attrib
-			fileID = ptrAttribs['FILEID']
+			fileID = filePointer.attrib['FILEID']
 			if 'PDF' in fileID:
 				pdfFile = fileID
 			elif 'JPG' in fileID:
@@ -166,22 +169,13 @@ def validateDerivs(xmlin):
 			elif 'ALTO' in fileID:
 				altoFile = fileID
 		
-		pageID = {
+		pageArray[pageID] = {
 			"pdf" : pdfFile,
 			"jpg" : jpgFile,
 			"alto" : altoFile
 		}
-		
-		pageArray = {
-			"page1" : pageID
-		}
 	
 	print(pageArray)
-	
-
-def validateFilePaths(xmlin):
-	buildPathStatusArray(buildFilePathList(xmlin))
-	buildDirStatusArray(buildFilePathList(xmlin))
 
 def metsValidator(metsfile):
 	validateXML(metsfile)
