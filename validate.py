@@ -176,7 +176,7 @@ def validateDerivs(xmlin):
 				pageArray[pageID]['jpg'] = fileID
 			elif 'ALTO' in fileID:
 				pageArray[pageID]['alto'] = fileID
-		
+	
 		if 'pdf' in pageArray[pageID]:
 			derivStatusArray[pageID]['pdf'] = True
 		elif 'pdf' not in pageArray[pageID]:
@@ -193,6 +193,28 @@ def validateDerivs(xmlin):
 			derivStatusArray[pageID]['alto'] = False
 	
 	print(derivStatusArray)
+
+def validateTechMd(xmlin):
+	# open and read xml file
+	with open(xmlin, 'r') as xml_file:
+		xml_to_check = xml_file.read()
+	
+	# parse xml and get root
+	tree = etree.parse(StringIO(xml_to_check))
+	root = tree.getroot()
+	
+	# define XML namespaces
+	ns = {
+	'mets': 'http://www.loc.gov/METS/'
+	}
+	
+	techMdStatusArray = {}
+	for jpgFile in root.findall('./mets:fileSec/mets:fileGrp[@ID="ImageJpgGroup"]/mets:fileGrp[@ID="JPGFiles"]/mets:file', ns):
+		fileID = jpgFile.attrib['ID']
+		admID = jpgFile.attrib['ADMID']
+		
+		
+		
 
 def metsValidator(metsfile):
 	validateXML(metsfile)
