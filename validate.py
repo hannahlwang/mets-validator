@@ -45,19 +45,20 @@ def validateXML(xmlin):
 	except IOError as err:
 		validXmlArray['io-ok'] = False
 		validXmlArray['io-error'] = str(err.error_log)
-		print(validXmlArray)
+		return validXmlArray
+		quit()
 
 	# check for XML syntax errors
 	except etree.XMLSyntaxError as err:
 		validXmlArray['well-formed'] = False
 		validXmlArray['syntax-error'] = str(err.error_log)
-		print(validXmlArray)
+		return validXmlArray
 		quit()
 
 	# check for any other unknown errors
 	except:
 		validXmlArray['other-parsing-error'] = str(sys.exc_info())
-		print(validXmlArray)
+		return validXmlArray
 		quit()
 	
 	# validate against schema
@@ -68,15 +69,15 @@ def validateXML(xmlin):
 	except etree.DocumentInvalid as err:
 		validXmlArray['valid'] = False
 		validXmlArray['validation-error'] = str(err.error_log)
-		print(validXmlArray)
+		return validXmlArray
 		quit()
 		
 	except:
 		validXmlArray['other-validation-error'] = str(sys.exc_info())
-		print(validXmlArray)
+		return validXmlArray
 		quit()
 	
-	print(validXmlArray)
+	return validXmlArray
 	
 # open and parse METS xml, define XML namespaces
 def parseMETS(xmlin):
@@ -113,26 +114,32 @@ def buildFilePathList(xmlin):
 	
 	return filePathList
 
-# check whether file paths in METS exist in package or not, build array of paths and statuses (boolean)
-def buildPathStatusArray(pathlist):
+# check whether file paths in METS (in filePathList) exist in package or not, build array of paths and statuses (boolean)
+def buildPathStatusArray(xmlin):
 	
+	pathlist = buildFilePathList(xmlin)
+	
+	# compare each file in pathlist against the contents of the system
 	pathStatusArray = {}
-
+	
 	for filePath in pathlist:
 		pathStatusArray[filePath] = os.path.exists(filePath)
 	
-	print(pathStatusArray)
-
+	return pathStatusArray
 
 # check whether file paths in package exist in METS or not, build array of paths and statuses (boolean)
-def buildDirStatusArray(pathlist):
-
-	dirList = []
+def buildDirStatusArray(xmlin):
 	
+	pathlist = buildFilePathList(xmlin) 
+	
+	# create list of files in system
+	dirList = []
+
 	for root, dirs, files in os.walk('.'):
 		for name in files:
 			dirList.append(os.path.join(root,name).replace('\\','/'))
 	
+	# compare each file in system list against the METS pathlist
 	dirStatusArray = {}
 	
 	for filePath in dirList:
@@ -141,19 +148,22 @@ def buildDirStatusArray(pathlist):
 		else:
 			dirStatusArray[filePath] = False
 	
-	print(dirStatusArray)
+	return dirStatusArray
 
-def validateFilePaths(xmlin):
-	buildPathStatusArray(buildFilePathList(xmlin))
-	buildDirStatusArray(buildFilePathList(xmlin))
+# check that all files in METS are present in package, and that all files in package are present in METS
+# def validateFilePaths(xmlin):
+	# buildPathStatusArray(xmlin)
+	# buildDirStatusArray(xmlin)
 
 def validateDerivs(xmlin):
 	
 	# open and parse METS xml, define XML namespaces
 	tree, root, ns = parseMETS(xmlin)
 	
+	# create array for storing page IDs and fileIDs for each pdf, jpg, and alto file in scructMap - this will be used to verify whether each file has all 3 derivatives
 	pageArray = {}
 	
+	# create array for reporting the presence of derivatives
 	derivStatusArray = {}
 	
 	# locate all the page tags in the structMap and create array with pdf, jpg, and alto files
@@ -190,7 +200,7 @@ def validateDerivs(xmlin):
 		elif 'alto' not in pageArray[pageID]:
 			derivStatusArray[pageID]['alto'] = False
 	
-	print(derivStatusArray)
+	return derivStatusArray
 
 def validateTechMd(xmlin):
 	
@@ -217,12 +227,51 @@ def validateTechMd(xmlin):
 			techMdStatusArray[fileID]['techMD'] = False
 		
 	print(techMdStatusArray)	
+
+def errorLogOutput(xmlin):
+	errorArray = {}
+	
+	validXmlArray = validateXML(xmlin)
+	metsFileName = validXmlArray['mets']
+	
+	
+	errorArray[metsFileName] = {}
+	
+	if validXmlArray['io-ok'] == False:
+		errorArray[metsFileName]['io-ok'] = False
+	if validXmlArray['well-formed'] == False:
+		errorArray[metsFileName]['well-formed'] = False
+	if validXmlArray['valid'] == False:
+		errorArray[metsFileName]['valid'] = False
+	
+	
+	pathStatusArray = buildPathStatusArray(xmlin)
+	
+	for path in pathStatusArray:
+		if pathStatusArray[path] == False:
+			errorArray[metsFileName]['all-files-present-in-package'] = False
+			
+	dirStatusArray = buildDirStatusArray(xmlin)
+	
+	for path in dirStatusArray:
+		if dirStatusArray[path] == False:
+			errorArray[metsFileName]['all-files-present-in-mets'] = False
+	
+	derivStatusArray = validateDerivs(xmlin)
+	
+	for page in derivStatusArray:
+		for deriv in derivStatusArray[page]:
+			if derivStatusArray[page][deriv] == False:
+				errorArray[metsFileName]['all-derivs-present'] = False
+				
+	
+	
+	print(errorArray)
 	
 
 def metsValidator(metsfile):
-	validateXML(metsfile)
-	validateFilePaths(metsfile)
 	validateDerivs(metsfile)
 	validateTechMd(metsfile)
+	errorLogOutput(metsfile)
 	
 metsValidator('wisconsinstatejournal_20190328_mets.xml')

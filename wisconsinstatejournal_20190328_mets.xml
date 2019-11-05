@@ -2125,7 +2125,7 @@
 				<mets:fptr FILEID="FID-00000001-ALTO"/>
 			</mets:div>
 			<mets:div ID="phys2" ORDER="2" ORDERLABEL="2" TYPE="page">
-				<!-- <mets:fptr FILEID="FID-00000002-PDF"/> -->
+				<mets:fptr FILEID="FID-00000002-PDF"/>
 				<mets:fptr FILEID="FID-00000002-JPG"/>
 				<mets:fptr FILEID="FID-00000002-ALTO"/>
 			</mets:div>
