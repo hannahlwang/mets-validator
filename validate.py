@@ -77,10 +77,9 @@ def validateXML(xmlin):
 		quit()
 	
 	print(validXmlArray)
-
-# build list of file paths based on fileSec paths in METS
-def buildFilePathList(xmlin):
-
+	
+# open and parse METS xml, define XML namespaces
+def parseMETS(xmlin):
 	# open and read xml file
 	with open(xmlin, 'r') as xml_file:
 		xml_to_check = xml_file.read()
@@ -94,6 +93,14 @@ def buildFilePathList(xmlin):
 	'mets': 'http://www.loc.gov/METS/',
 	'xlink': 'http://www.w3.org/1999/xlink'
 	}
+	
+	return tree, root, ns
+
+# build list of file paths based on fileSec paths in METS
+def buildFilePathList(xmlin):
+	
+	# open and parse METS xml, define XML namespaces
+	tree, root, ns = parseMETS(xmlin)
 	
 	# create list of file paths in the file section which will be used as input for validation
 	filePathList = []
@@ -141,18 +148,9 @@ def validateFilePaths(xmlin):
 	buildDirStatusArray(buildFilePathList(xmlin))
 
 def validateDerivs(xmlin):
-	# open and read xml file
-	with open(xmlin, 'r') as xml_file:
-		xml_to_check = xml_file.read()
 	
-	# parse xml and get root
-	tree = etree.parse(StringIO(xml_to_check))
-	root = tree.getroot()
-	
-	# define XML namespaces
-	ns = {
-	'mets': 'http://www.loc.gov/METS/'
-	}
+	# open and parse METS xml, define XML namespaces
+	tree, root, ns = parseMETS(xmlin)
 	
 	pageArray = {}
 	
@@ -195,18 +193,9 @@ def validateDerivs(xmlin):
 	print(derivStatusArray)
 
 def validateTechMd(xmlin):
-	# open and read xml file
-	with open(xmlin, 'r') as xml_file:
-		xml_to_check = xml_file.read()
 	
-	# parse xml and get root
-	tree = etree.parse(StringIO(xml_to_check))
-	root = tree.getroot()
-	
-	# define XML namespaces
-	ns = {
-	'mets': 'http://www.loc.gov/METS/'
-	}
+	# open and parse METS xml, define XML namespaces
+	tree, root, ns = parseMETS(xmlin)
 	
 	techMdStatusArray = {}
 	
