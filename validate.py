@@ -209,16 +209,31 @@ def validateTechMd(xmlin):
 	}
 	
 	techMdStatusArray = {}
+	
 	for jpgFile in root.findall('./mets:fileSec/mets:fileGrp[@ID="ImageJpgGroup"]/mets:fileGrp[@ID="JPGFiles"]/mets:file', ns):
 		fileID = jpgFile.attrib['ID']
 		admID = jpgFile.attrib['ADMID']
+		techMdStatusArray[fileID] = {}
+		techMdStatusArray[fileID]['ADMID'] = admID
+	
+	techMdArray = []
+	for techMdEntry in root.findall('./mets:amdSec[@ID="TECH_MD"]/mets:techMD', ns):
+		admID = techMdEntry.attrib['ID']
+		techMdArray.append(admID)
+	
+	for fileID in techMdStatusArray :
+		if techMdStatusArray[fileID]['ADMID'] in techMdArray:
+			techMdStatusArray[fileID]['techMD'] = True
+		else:
+			techMdStatusArray[fileID]['techMD'] = False
 		
-		
-		
+	print(techMdStatusArray)	
+	
 
 def metsValidator(metsfile):
 	validateXML(metsfile)
 	validateFilePaths(metsfile)
 	validateDerivs(metsfile)
+	validateTechMd(metsfile)
 	
 metsValidator('wisconsinstatejournal_20190328_mets.xml')
