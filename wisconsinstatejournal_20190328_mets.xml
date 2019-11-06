@@ -2136,7 +2136,7 @@
 			</mets:div>
 			<mets:div ID="phys4" ORDER="4" ORDERLABEL="4" TYPE="page">
 				<!-- <mets:fptr FILEID="FID-00000004-PDF"/> -->
-				<mets:fptr FILEID="FID-00000004-JPG"/>
+				<!-- <mets:fptr FILEID="FID-00000004-JPG"/> -->
 				<mets:fptr FILEID="FID-00000004-ALTO"/>
 			</mets:div>
 			<mets:div ID="phys5" ORDER="5" ORDERLABEL="5" TYPE="page">
@@ -2316,7 +2316,7 @@
 			</mets:div>
 			<mets:div ID="phys40" ORDER="40" ORDERLABEL="40" TYPE="page">
 				<mets:fptr FILEID="FID-00000040-PDF"/>
-				<mets:fptr FILEID="FID-00000040-JPG"/>
+				<!-- <mets:fptr FILEID="FID-00000040-JPG"/> -->
 				<mets:fptr FILEID="FID-00000040-ALTO"/>
 			</mets:div>
 			<mets:div ID="phys41" ORDER="41" ORDERLABEL="41" TYPE="page">

@@ -1,18 +1,11 @@
-# function - validateXML -> report array (boolean)
-# function - validatefilesecpaths -> array of paths and status
-    # pass XML
-    # function buildfileseclist (input XML) -> array of paths
-    # function validatefileseclist (input array of paths) -> array of paths and status
-    # function validatedircontents (walk thru dir and see if it appears in fileseclist) -> array of paths and status
-# function - validatederivs -> array of three file types and status (and what was missing) - JSON structure
-# function - validatetechmd -> array of jpeg ids and status 
-
-	
 from lxml import etree
 from io import StringIO
 from urllib.request import urlopen
 import sys
 import os
+import json
+import csv
+import itertools
 
 # validate XML against METS XSD schema
 def validateXML(xmlin):
@@ -92,7 +85,8 @@ def parseMETS(xmlin):
 	# define XML namespaces
 	ns = {
 	'mets': 'http://www.loc.gov/METS/',
-	'xlink': 'http://www.w3.org/1999/xlink'
+	'xlink': 'http://www.w3.org/1999/xlink',
+	'mods': 'http://www.loc.gov/mods/v3'
 	}
 	
 	return tree, root, ns
@@ -150,11 +144,6 @@ def buildDirStatusArray(xmlin):
 	
 	return dirStatusArray
 
-# check that all files in METS are present in package, and that all files in package are present in METS
-# def validateFilePaths(xmlin):
-	# buildPathStatusArray(xmlin)
-	# buildDirStatusArray(xmlin)
-
 def validateDerivs(xmlin):
 	
 	# open and parse METS xml, define XML namespaces
@@ -166,8 +155,12 @@ def validateDerivs(xmlin):
 	# create array for reporting the presence of derivatives
 	derivStatusArray = {}
 	
+	pageCounter = 0
+	
 	# locate all the page tags in the structMap and create array with pdf, jpg, and alto files
 	for physPage in root.findall('./mets:structMap/mets:div/mets:div', ns):
+	
+		pageCounter += 1
 		
 		attributes = physPage.attrib
 		pageID = attributes['ID']
@@ -200,7 +193,7 @@ def validateDerivs(xmlin):
 		elif 'alto' not in pageArray[pageID]:
 			derivStatusArray[pageID]['alto'] = False
 	
-	return derivStatusArray
+	return derivStatusArray, pageCounter
 
 def validateTechMd(xmlin):
 	
@@ -226,52 +219,142 @@ def validateTechMd(xmlin):
 		else:
 			techMdStatusArray[fileID]['techMD'] = False
 		
-	print(techMdStatusArray)	
+	return techMdStatusArray
 
-def errorLogOutput(xmlin):
+def logDescMd(xmlin):
+
+	# open and parse METS xml, define XML namespaces
+	tree, root, ns = parseMETS(xmlin)
+	
+	descMdArray = {}
+	
+	mods = root.find('./mets:dmdSec/mets:mdWrap/mets:xmlData/mods:mods', ns)
+	
+	title = mods.find('./mods:titleInfo/mods:title', ns).text
+	descMdArray['Title'] = title
+	
+	dateIssued = mods.find('./mods:originInfo/mods:dateIssued', ns).text
+	descMdArray['Date issued'] = dateIssued
+	
+	edition = mods.find('./mods:originInfo/mods:edition', ns).text
+	descMdArray['Edition'] = edition
+	
+	language = mods.find('./mods:language/mods:languageTerm', ns).text
+	descMdArray['Language'] = language
+	
+	catalogueIdentifier = mods.find("./mods:identifier[@type='CatalogueIdentifier']", ns).text
+	descMdArray['Catalogue identifier'] = catalogueIdentifier
+	
+	lccn = mods.find("./mods:identifier[@type='lccn']", ns).text
+	descMdArray['lccn'] = lccn
+		
+	return descMdArray
+
+def loggingOutput(xmlin):
 	errorArray = {}
+	curatorReportArray = {}
 	
 	validXmlArray = validateXML(xmlin)
 	metsFileName = validXmlArray['mets']
 	
-	
 	errorArray[metsFileName] = {}
+	curatorReportArray[metsFileName] = {}
 	
-	if validXmlArray['io-ok'] == False:
-		errorArray[metsFileName]['io-ok'] = False
-	if validXmlArray['well-formed'] == False:
-		errorArray[metsFileName]['well-formed'] = False
-	if validXmlArray['valid'] == False:
-		errorArray[metsFileName]['valid'] = False
+	if validXmlArray['well-formed'] == False or  validXmlArray['valid'] == False:
+		errorArray[metsFileName] = {
+			'validation errors' : validXmlArray
+		}
+		print(json.dumps(errorArray, indent=4))
+		
+		curatorReportArray[metsFileName] = {
+			'Valid METS' : 'No'
+		}
+		print(json.dumps(curatorReportArray, indent=4))
+		quit()
 	
+	else:
+		curatorReportArray[metsFileName] = {
+			'Valid METS' : 'Yes'
+		}
+	
+	descMdArray = logDescMd(xmlin)
+	
+	curatorReportArray[metsFileName].update(descMdArray)
 	
 	pathStatusArray = buildPathStatusArray(xmlin)
+	errorArray[metsFileName]['files in mets not in package'] = []
 	
 	for path in pathStatusArray:
 		if pathStatusArray[path] == False:
-			errorArray[metsFileName]['all-files-present-in-package'] = False
-			
+			errorArray[metsFileName]['files in mets not in package'].append(path)
+	
+	if errorArray[metsFileName]['files in mets not in package'] == []:
+		errorArray[metsFileName].pop('files in mets not in package')
+		curatorReportArray[metsFileName]['All files from METS present in package'] = 'Yes'
+	else:
+		curatorReportArray[metsFileName]['All files from METS present in package'] = 'No'
+	
 	dirStatusArray = buildDirStatusArray(xmlin)
+	errorArray[metsFileName]['files in package not in mets'] = []
 	
 	for path in dirStatusArray:
 		if dirStatusArray[path] == False:
-			errorArray[metsFileName]['all-files-present-in-mets'] = False
+			errorArray[metsFileName]['files in package not in mets'].append(path)
+			
+	if errorArray[metsFileName]['files in package not in mets'] == []:
+		errorArray[metsFileName].pop('files in package not in mets')
+		curatorReportArray[metsFileName]['All files in package present in METS'] = 'Yes'
+	else:
+		curatorReportArray[metsFileName]['All files in package present in METS'] = 'No'
 	
-	derivStatusArray = validateDerivs(xmlin)
+	derivStatusArray, pageCounter = validateDerivs(xmlin)
+	
+	curatorReportArray[metsFileName]['Number of pages'] = pageCounter
+	errorArray[metsFileName]['missing derivatives'] = {}
 	
 	for page in derivStatusArray:
+		errorArray[metsFileName]['missing derivatives'][page] = []
 		for deriv in derivStatusArray[page]:
 			if derivStatusArray[page][deriv] == False:
-				errorArray[metsFileName]['all-derivs-present'] = False
+				errorArray[metsFileName]['missing derivatives'][page].append(deriv)
+		
+		if errorArray[metsFileName]['missing derivatives'][page] == []:
+			errorArray[metsFileName]['missing derivatives'].pop(page)
+			
+	if errorArray[metsFileName]['missing derivatives'] == {}:
+		errorArray[metsFileName].pop('missing derivatives')
+		curatorReportArray[metsFileName]['Each page has PDF, JPG, and Alto'] = 'Yes'
+	else:
+		curatorReportArray[metsFileName]['Each page has PDF, JPG, and Alto'] = 'No'
 				
+	techMdStatusArray = validateTechMd(xmlin)
+	errorArray[metsFileName]['missing technical metadata'] = []
 	
+	for jpgFile in techMdStatusArray:
+		if techMdStatusArray[jpgFile]['techMD'] == False:
+			errorArray[metsFileName]['missing technical metadata'].append(jpgFile)
+			
+	if errorArray[metsFileName]['missing technical metadata'] == []:
+		errorArray[metsFileName].pop('missing technical metadata')
+		curatorReportArray[metsFileName]['Technical metadata for each JPG'] = 'Yes'
+	else:
+		curatorReportArray[metsFileName]['Technical metadata for each JPG'] = 'False'
 	
-	print(errorArray)
+	print(json.dumps(errorArray, indent=4))
+	# print(json.dumps(curatorReportArray, indent=4))
+	
+	fields = ['METS filename','Valid METS','Title','Date issued', 'Edition', 'Language', 'Catalogue identifier', 'lccn', 'Number of pages', 'All files from METS present in package', 'All files in package present in METS', 'Each page has PDF, JPG, and Alto', 'Technical metadata for each JPG']
+	
+	with open('report.csv', 'w') as f:
+		w = csv.DictWriter(f, fieldnames=fields, lineterminator='\n')
+		w.writeheader()
+		for key,val in sorted(curatorReportArray.items()):
+			row = {'METS filename':key}
+			row.update(val)
+			w.writerow(row)
 	
 
 def metsValidator(metsfile):
-	validateDerivs(metsfile)
-	validateTechMd(metsfile)
-	errorLogOutput(metsfile)
+	loggingOutput(metsfile)
 	
 metsValidator('wisconsinstatejournal_20190328_mets.xml')
