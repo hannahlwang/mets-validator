@@ -1757,9 +1757,9 @@
 				<mets:file ID="FID-00000010-PDF" SEQ="10" MIMETYPE="application/pdf">
 					<mets:FLocat LOCTYPE="URL" xlink:href="./images/pdf/mni_wsjo_032819_01_a_010_00_01_nw.001.pdf"/>
 				</mets:file>
-				<mets:file ID="FID-00000011-PDF" SEQ="11" MIMETYPE="application/pdf">
-					<mets:FLocat LOCTYPE="URL" xlink:href="./images/pdf/mni_wsjo_032819_01_a_011_00_01_nw.pdf"/>
-				</mets:file>
+				<!-- <mets:file ID="FID-00000011-PDF" SEQ="11" MIMETYPE="application/pdf"> -->
+					<!-- <mets:FLocat LOCTYPE="URL" xlink:href="./images/pdf/mni_wsjo_032819_01_a_011_00_01_nw.pdf"/> -->
+				<!-- </mets:file> -->
 				<mets:file ID="FID-00000012-PDF" SEQ="12" MIMETYPE="application/pdf">
 					<mets:FLocat LOCTYPE="URL" xlink:href="./images/pdf/mni_wsjo_032819_01_a_012_00_01_nw.pdf"/>
 				</mets:file>
@@ -2135,8 +2135,8 @@
 				<mets:fptr FILEID="FID-00000003-ALTO"/>
 			</mets:div>
 			<mets:div ID="phys4" ORDER="4" ORDERLABEL="4" TYPE="page">
-				<!-- <mets:fptr FILEID="FID-00000004-PDF"/> -->
-				<!-- <mets:fptr FILEID="FID-00000004-JPG"/> -->
+				<mets:fptr FILEID="FID-00000004-PDF"/>
+				<mets:fptr FILEID="FID-00000004-JPG"/>
 				<mets:fptr FILEID="FID-00000004-ALTO"/>
 			</mets:div>
 			<mets:div ID="phys5" ORDER="5" ORDERLABEL="5" TYPE="page">
@@ -2316,7 +2316,7 @@
 			</mets:div>
 			<mets:div ID="phys40" ORDER="40" ORDERLABEL="40" TYPE="page">
 				<mets:fptr FILEID="FID-00000040-PDF"/>
-				<!-- <mets:fptr FILEID="FID-00000040-JPG"/> -->
+				<mets:fptr FILEID="FID-00000040-JPG"/>
 				<mets:fptr FILEID="FID-00000040-ALTO"/>
 			</mets:div>
 			<mets:div ID="phys41" ORDER="41" ORDERLABEL="41" TYPE="page">
@@ -2325,8 +2325,8 @@
 				<mets:fptr FILEID="FID-00000041-ALTO"/>
 			</mets:div>
 			<mets:div ID="phys42" ORDER="42" ORDERLABEL="42" TYPE="page">
-				<mets:fptr FILEID="FID-00000042-PDF"/>
-				<mets:fptr FILEID="FID-00000042-JPG"/>
+				<!-- <mets:fptr FILEID="FID-00000042-PDF"/> -->
+				<!-- <mets:fptr FILEID="FID-00000042-JPG"/> -->
 				<mets:fptr FILEID="FID-00000042-ALTO"/>
 			</mets:div>
 		</mets:div>

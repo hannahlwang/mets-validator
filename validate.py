@@ -31,9 +31,16 @@ def validateXML(xmlin):
 	# parse xml
 	try:
 		doc = etree.parse(StringIO(xml_to_check))
+		validXmlArray['value-ok'] = True
 		validXmlArray['io-ok'] = True
 		validXmlArray['well-formed'] = True
-
+		
+	except ValueError as err:
+		validXmlArray['value-ok'] = False
+		validXmlArray['value-error'] = str(err)
+		return validXmlArray
+		quit()
+		
 	# check for file IO error
 	except IOError as err:
 		validXmlArray['io-ok'] = False
@@ -98,33 +105,34 @@ def buildFilePathList(xmlin):
 	tree, root, ns = parseMETS(xmlin)
 	
 	# create list of file paths in the file section which will be used as input for validation
-	filePathList = []
+	filePathArray = {}
 	
 	# locate all the mets:FLocat tags and add the href attributes to the file path list
-	for fileLoc in root.findall('./mets:fileSec/mets:fileGrp/mets:fileGrp/mets:file/mets:FLocat', ns):
-		attributes = fileLoc.attrib
-		filePath = attributes['{http://www.w3.org/1999/xlink}href']
-		filePathList.append(filePath)
+	for metsFile in root.findall('./mets:fileSec/mets:fileGrp/mets:fileGrp/mets:file', ns):
+		fileId = metsFile.attrib['ID']
+		filePath = metsFile.find('./mets:FLocat',ns).attrib['{http://www.w3.org/1999/xlink}href']
+		filePathArray[fileId] = filePath
 	
-	return filePathList
+	return filePathArray
 
-# check whether file paths in METS (in filePathList) exist in package or not, build array of paths and statuses (boolean)
+# check whether file paths in METS (in filePathArray) exist in package or not, build array of paths and statuses (boolean)
 def buildPathStatusArray(xmlin):
 	
-	pathlist = buildFilePathList(xmlin)
+	filePathArray = buildFilePathList(xmlin)
 	
 	# compare each file in pathlist against the contents of the system
 	pathStatusArray = {}
 	
-	for filePath in pathlist:
+	for filePath in filePathArray.values():
 		pathStatusArray[filePath] = os.path.exists(filePath)
 	
 	return pathStatusArray
+	# print(pathStatusArray)
 
 # check whether file paths in package exist in METS or not, build array of paths and statuses (boolean)
 def buildDirStatusArray(xmlin):
 	
-	pathlist = buildFilePathList(xmlin) 
+	filePathArray = buildFilePathList(xmlin)
 	
 	# create list of files in system
 	dirList = []
@@ -137,12 +145,13 @@ def buildDirStatusArray(xmlin):
 	dirStatusArray = {}
 	
 	for filePath in dirList:
-		if filePath in pathlist:
+		if filePath in filePathArray.values():
 			dirStatusArray[filePath] = True
 		else:
 			dirStatusArray[filePath] = False
 	
 	return dirStatusArray
+	# print(dirStatusArray)
 
 def validateDerivs(xmlin):
 	
@@ -156,6 +165,8 @@ def validateDerivs(xmlin):
 	derivStatusArray = {}
 	
 	pageCounter = 0
+	
+	filePathArray = buildFilePathList(xmlin)
 	
 	# locate all the page tags in the structMap and create array with pdf, jpg, and alto files
 	for physPage in root.findall('./mets:structMap/mets:div/mets:div', ns):
@@ -172,28 +183,51 @@ def validateDerivs(xmlin):
 		for filePointer in physPage.findall('./mets:fptr', ns):
 			fileID = filePointer.attrib['FILEID']
 			if 'PDF' in fileID:
-				pageArray[pageID]['pdf'] = fileID
+				pageArray[pageID]['pdf'] = {'ID' : fileID}
+				pageArray[pageID]['pdf']['filename'] = filePathArray.get(fileID)
 			elif 'JPG' in fileID:
-				pageArray[pageID]['jpg'] = fileID
+				pageArray[pageID]['jpg'] = {'ID' : fileID}
+				pageArray[pageID]['jpg']['filename'] = filePathArray.get(fileID)
 			elif 'ALTO' in fileID:
-				pageArray[pageID]['alto'] = fileID
+				pageArray[pageID]['alto'] = {'ID' : fileID}
+				pageArray[pageID]['alto']['filename'] = filePathArray.get(fileID)
+		
+	for pageID in pageArray:
 	
+		derivStatusArray[pageID] = {}
+		
 		if 'pdf' in pageArray[pageID]:
-			derivStatusArray[pageID]['pdf'] = True
+			if pageArray[pageID]['pdf']['filename'] == None:
+				derivStatusArray[pageID]['pdf'] = False
+			else:
+				derivStatusArray[pageID]['pdf'] = True
 		elif 'pdf' not in pageArray[pageID]:
 			derivStatusArray[pageID]['pdf'] = False
 			
 		if 'jpg' in pageArray[pageID]:
-			derivStatusArray[pageID]['jpg'] = True
+			if pageArray[pageID]['jpg']['filename'] == None:
+				derivStatusArray[pageID]['jpg'] = False
+			else:
+				derivStatusArray[pageID]['jpg'] = True
 		elif 'jpg' not in pageArray[pageID]:
 			derivStatusArray[pageID]['jpg'] = False
 			
 		if 'alto' in pageArray[pageID]:
-			derivStatusArray[pageID]['alto'] = True
+			if pageArray[pageID]['alto']['filename'] == None:
+				derivStatusArray[pageID]['alto'] = False
+			else:
+				derivStatusArray[pageID]['alto'] = True
 		elif 'alto' not in pageArray[pageID]:
 			derivStatusArray[pageID]['alto'] = False
+			
 	
 	return derivStatusArray, pageCounter
+	# print('\nfilePathArray\n')
+	# print(json.dumps(filePathArray, indent=4))
+	# print('\npageArray\n')
+	# print(json.dumps(pageArray, indent=4))
+	# print('\nderivStatusArray\n')
+	# print(json.dumps(derivStatusArray, indent=4))
 
 def validateTechMd(xmlin):
 	
@@ -250,7 +284,20 @@ def logDescMd(xmlin):
 		
 	return descMdArray
 
+def createCuratorReport(reportname,reportarray):
+	fields = ['METS filename','Valid METS','Title','Date issued', 'Edition', 'Language', 'Catalogue identifier', 'lccn', 'Number of pages', 'All files from METS present in package', 'All files in package present in METS', 'Each page has PDF, JPG, and Alto', 'Technical metadata for each JPG']
+	
+	with open(reportname, 'w') as f:
+		w = csv.DictWriter(f, fieldnames=fields, lineterminator='\n')
+		w.writeheader()
+		for key,val in sorted(reportarray.items()):
+			row = {'METS filename':key}
+			row.update(val)
+			w.writerow(row)
+
+
 def loggingOutput(xmlin):
+	
 	errorArray = {}
 	curatorReportArray = {}
 	
@@ -260,7 +307,7 @@ def loggingOutput(xmlin):
 	errorArray[metsFileName] = {}
 	curatorReportArray[metsFileName] = {}
 	
-	if validXmlArray['well-formed'] == False or  validXmlArray['valid'] == False:
+	if validXmlArray['value-ok'] == False or validXmlArray['io-ok'] == False or validXmlArray['well-formed'] == False or  validXmlArray['valid'] == False:
 		errorArray[metsFileName] = {
 			'validation errors' : validXmlArray
 		}
@@ -269,7 +316,9 @@ def loggingOutput(xmlin):
 		curatorReportArray[metsFileName] = {
 			'Valid METS' : 'No'
 		}
-		print(json.dumps(curatorReportArray, indent=4))
+		
+		createCuratorReport('report.csv',curatorReportArray)
+		
 		quit()
 	
 	else:
@@ -343,18 +392,12 @@ def loggingOutput(xmlin):
 	print(json.dumps(errorArray, indent=4))
 	# print(json.dumps(curatorReportArray, indent=4))
 	
-	fields = ['METS filename','Valid METS','Title','Date issued', 'Edition', 'Language', 'Catalogue identifier', 'lccn', 'Number of pages', 'All files from METS present in package', 'All files in package present in METS', 'Each page has PDF, JPG, and Alto', 'Technical metadata for each JPG']
-	
-	with open('report.csv', 'w') as f:
-		w = csv.DictWriter(f, fieldnames=fields, lineterminator='\n')
-		w.writeheader()
-		for key,val in sorted(curatorReportArray.items()):
-			row = {'METS filename':key}
-			row.update(val)
-			w.writerow(row)
-	
+	createCuratorReport('report.csv',curatorReportArray)
 
 def metsValidator(metsfile):
+	# buildPathStatusArray(metsfile)
+	# buildDirStatusArray(metsfile)
+	# validateDerivs(metsfile)
 	loggingOutput(metsfile)
 	
 metsValidator('wisconsinstatejournal_20190328_mets.xml')
