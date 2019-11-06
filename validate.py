@@ -152,9 +152,8 @@ def buildDirStatusArray(xmlin):
 	
 	return dirStatusArray
 	# print(dirStatusArray)
-
-def validateDerivs(xmlin):
 	
+def buildPageArray(xmlin):
 	# open and parse METS xml, define XML namespaces
 	tree, root, ns = parseMETS(xmlin)
 	
@@ -191,6 +190,90 @@ def validateDerivs(xmlin):
 			elif 'ALTO' in fileID:
 				pageArray[pageID]['alto'] = {'ID' : fileID}
 				pageArray[pageID]['alto']['filename'] = filePathArray.get(fileID)
+	
+	return pageArray, pageCounter
+
+# def accessFilename(pageArray):
+	
+	# for pageID in pageArray:
+		# if 'pdf' in pageArray[pageID]:
+			# pdfName = pageArray[pageID]['pdf']['filename']
+		# if 'jpg' in pageArray[pageID]:
+			# jpgName = pageArray[pageID]['jpg']['filename']
+		# if 'alto' in pageArray[pageID]:
+			# altoName = pageArray[pageID]['alto']['filename']
+		
+		# return pdfName, jpgName, altoName
+	
+def buildMissingFilenameArray(xmlin):
+	
+	pageArray, pageCounter = buildPageArray(xmlin)
+	
+	print('\npageArray\n')
+	print(json.dumps(pageArray, indent=4))
+	
+	missingFilenameArray = {}
+	
+	for pageID in pageArray:
+
+		missingFilenameArray[pageID] = []
+		
+		if 'pdf' in pageArray[pageID]:
+			if pageArray[pageID]['pdf']['filename'] == None:
+				try:
+					pdfName = pageArray[pageID]['jpg']['filename'].replace('jpg','pdf')
+					missingFilenameArray[pageID].append(pdfName)
+				except:
+					pdfName = pageArray[pageID]['alto']['filename'].replace('xml','pdf').replace('alto','images/pdf')
+					missingFilenameArray[pageID].append(pdfName)
+				finally:
+					pdfName = None
+		elif 'pdf' not in pageArray[pageID]:
+			try:
+				pdfName = pageArray[pageID]['jpg']['filename'].replace('jpg','pdf')
+				missingFilenameArray[pageID].append(pdfName)
+			except:
+				pdfName = pageArray[pageID]['alto']['filename'].replace('xml','pdf').replace('alto','images/pdf')
+				missingFilenameArray[pageID].append(pdfName)
+			finally:
+				pdfName = None
+				
+				
+		if 'jpg' in pageArray[pageID]:
+			if pageArray[pageID]['jpg']['filename'] == None:
+				try:
+					jpgName = pageArray[pageID]['pdf']['filename'].replace('pdf','jpg')
+					missingFilenameArray[pageID].append(jpgName)
+				except:
+					jpgName = pageArray[pageID]['alto']['filename'].replace('xml','jpg').replace('alto','images/jpg')
+					missingFilenameArray[pageID].append(jpgName)
+				finally:
+					jpgName = None
+		elif 'jpg' not in pageArray[pageID]:
+			try:
+				jpgName = pageArray[pageID]['pdf']['filename'].replace('pdf','jpg')
+				missingFilenameArray[pageID].append(jpgName)
+			except:
+				jpgName = pageArray[pageID]['alto']['filename'].replace('xml','jpg').replace('alto','images/jpg')
+				missingFilenameArray[pageID].append(jpgName)
+			finally:
+				jpgName = None
+				
+		# NEED TO ADD ALTONAME
+		
+		
+				
+	print('\nmissingFilenameArray\n')
+	print(missingFilenameArray)
+				
+def validateDerivs(xmlin):
+
+	pageArray, pageCounter = buildPageArray(xmlin)
+	
+	print('\npageArray\n')
+	print(json.dumps(pageArray, indent=4))
+	
+	derivStatusArray = {}
 		
 	for pageID in pageArray:
 	
@@ -220,8 +303,8 @@ def validateDerivs(xmlin):
 		elif 'alto' not in pageArray[pageID]:
 			derivStatusArray[pageID]['alto'] = False
 			
+	return derivStatusArray
 	
-	return derivStatusArray, pageCounter
 	# print('\nfilePathArray\n')
 	# print(json.dumps(filePathArray, indent=4))
 	# print('\npageArray\n')
@@ -355,8 +438,10 @@ def loggingOutput(xmlin):
 		curatorReportArray[metsFileName]['All files in package present in METS'] = 'Yes'
 	else:
 		curatorReportArray[metsFileName]['All files in package present in METS'] = 'No'
+		
+	pageArray, pageCounter = buildPageArray(xmlin)
 	
-	derivStatusArray, pageCounter = validateDerivs(xmlin)
+	derivStatusArray = validateDerivs(xmlin)
 	
 	curatorReportArray[metsFileName]['Number of pages'] = pageCounter
 	errorArray[metsFileName]['missing derivatives'] = {}
@@ -398,6 +483,7 @@ def metsValidator(metsfile):
 	# buildPathStatusArray(metsfile)
 	# buildDirStatusArray(metsfile)
 	# validateDerivs(metsfile)
-	loggingOutput(metsfile)
+	# loggingOutput(metsfile)
+	buildMissingFilenameArray(metsfile)
 	
 metsValidator('wisconsinstatejournal_20190328_mets.xml')
