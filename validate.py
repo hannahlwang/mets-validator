@@ -13,6 +13,10 @@ def validateXML(xmlin):
 	# create report array
 	validXmlArray = {
 	'mets':xmlin,
+	'value-ok':'',
+	'io-ok':'',
+	'well-formed':'',
+	'valid':''
 	}
 		
 	# open and read schema file
@@ -29,6 +33,7 @@ def validateXML(xmlin):
 	xmlschema = etree.XMLSchema(xmlschema_doc)
 	
 	# parse xml
+	
 	try:
 		doc = etree.parse(StringIO(xml_to_check))
 		validXmlArray['value-ok'] = True
@@ -38,28 +43,20 @@ def validateXML(xmlin):
 	except ValueError as err:
 		validXmlArray['value-ok'] = False
 		validXmlArray['value-error'] = str(err)
-		return validXmlArray
-		quit()
 		
 	# check for file IO error
 	except IOError as err:
 		validXmlArray['io-ok'] = False
 		validXmlArray['io-error'] = str(err.error_log)
-		return validXmlArray
-		quit()
 
 	# check for XML syntax errors
 	except etree.XMLSyntaxError as err:
 		validXmlArray['well-formed'] = False
 		validXmlArray['syntax-error'] = str(err.error_log)
-		return validXmlArray
-		quit()
 
 	# check for any other unknown errors
 	except:
 		validXmlArray['other-parsing-error'] = str(sys.exc_info())
-		return validXmlArray
-		quit()
 	
 	# validate against schema
 	try:
@@ -69,13 +66,9 @@ def validateXML(xmlin):
 	except etree.DocumentInvalid as err:
 		validXmlArray['valid'] = False
 		validXmlArray['validation-error'] = str(err.error_log)
-		return validXmlArray
-		quit()
 		
 	except:
 		validXmlArray['other-validation-error'] = str(sys.exc_info())
-		return validXmlArray
-		quit()
 	
 	return validXmlArray
 	
@@ -126,11 +119,9 @@ def buildPathStatusArray(xmlin):
 	pathStatusArray = {}
 	
 	for filePath in filePathArray.values():
-		# fullFilePath = os.path.join
 		pathStatusArray[filePath] = os.path.exists(os.path.join(rootDir,filePath))
 	
 	return pathStatusArray
-	# print(pathStatusArray)
 
 # check whether file paths in package exist in METS or not, build array of paths and statuses (boolean)
 def buildDirStatusArray(xmlin):
@@ -158,7 +149,6 @@ def buildDirStatusArray(xmlin):
 			dirStatusArray[filePath] = False
 	
 	return dirStatusArray
-	# print(dirStatusArray)
 	
 def buildPageArray(xmlin):
 	# open and parse METS xml, define XML namespaces
@@ -166,9 +156,6 @@ def buildPageArray(xmlin):
 	
 	# create array for storing page IDs and fileIDs for each pdf, jpg, and alto file in scructMap - this will be used to verify whether each file has all 3 derivatives
 	pageArray = {}
-	
-	# create array for reporting the presence of derivatives
-	derivStatusArray = {}
 	
 	pageCounter = 0
 	
@@ -183,8 +170,6 @@ def buildPageArray(xmlin):
 		pageID = attributes['ID']
 		
 		pageArray[pageID] = {}
-		
-		derivStatusArray[pageID] = {}
 		
 		for filePointer in physPage.findall('./mets:fptr', ns):
 			fileID = filePointer.attrib['FILEID']
@@ -208,70 +193,86 @@ def buildMissingFilenameArray(xmlin):
 	
 	for pageID in pageArray:
 
-		missingFilenameArray[pageID] = []
+		missingFilenameArray[pageID] = {}
 		
 		pdfDeriv = pageArray[pageID].get('pdf')
 		jpgDeriv = pageArray[pageID].get('jpg')
 		altoDeriv = pageArray[pageID].get('alto')
 		
 		if pdfDeriv:
-			if pageArray[pageID]['pdf']['filename'] == None:
+			if pdfDeriv['filename'] == None:
 				if jpgDeriv:
-					pdfName = pageArray[pageID]['jpg']['filename'].replace('jpg','pdf')
+					pdfID = jpgDeriv['ID'].replace('JPG','PDF')
+					pdfName = jpgDeriv['filename'].replace('jpg','pdf')
 				elif altoDeriv:
-					pdfName = pageArray[pageID]['alto']['filename'].replace('xml','pdf').replace('alto','images/pdf')
+					pdfID = altoDeriv['ID'].replace('ALTO','PDF')
+					pdfName = altoDeriv['filename'].replace('xml','pdf').replace('alto','images/pdf')
 				else:
-					pdfName = 'unknown pdf'
-				missingFilenameArray[pageID].append(pdfName)
+					pdfID = 'unknown PDF ID'
+					pdfName = 'unknown PDF filename'
+				missingFilenameArray[pageID][pdfID] = pdfName
 		else:
 			if jpgDeriv:
-				pdfName = pageArray[pageID]['jpg']['filename'].replace('jpg','pdf')
+				pdfID = jpgDeriv['ID'].replace('JPG','PDF')
+				pdfName = jpgDeriv['filename'].replace('jpg','pdf')
 			elif altoDeriv:
-				pdfName = pageArray[pageID]['alto']['filename'].replace('xml','pdf').replace('alto','images/pdf')
+				pdfID = altoDeriv['ID'].replace('ALTO','PDF')
+				pdfName = altoDeriv['filename'].replace('xml','pdf').replace('alto','images/pdf')
 			else:
-				pdfName = 'unknown pdf'
-			missingFilenameArray[pageID].append(pdfName)
+				pdfID = 'unknown PDF ID'
+				pdfName = 'unknown PDF filename'
+			missingFilenameArray[pageID][pdfID] = pdfName
 				
 				
 		if jpgDeriv:
-			if pageArray[pageID]['jpg']['filename'] == None:
+			if jpgDeriv['filename'] == None:
 				if pdfDeriv:
-					jpgName = pageArray[pageID]['pdf']['filename'].replace('pdf','jpg')
+					jpgID = pdfDeriv['ID'].replace('PDF','JPG')
+					jpgName = pdfDeriv['filename'].replace('pdf','jpg')
 				elif altoDeriv:
-					jpgName = pageArray[pageID]['alto']['filename'].replace('xml','jpg').replace('alto','images/jpg')
+					jpgID = altoDeriv['ID'].replace('ALTO','JPG')
+					jpgName = altoDeriv['filename'].replace('xml','jpg').replace('alto','images/jpg')
 				else:
-					jpgName = 'unknown jpg'
-				missingFilenameArray[pageID].append(jpgName)
+					jpgID = 'unknown JPG ID'
+					jpgName = 'unknown JPG filename'
+				missingFilenameArray[pageID][jpgID] = jpgName
 		else:
 			if pdfDeriv:
-				jpgName = pageArray[pageID]['pdf']['filename'].replace('pdf','jpg')
+				jpgID = pdfDeriv['ID'].replace('PDF','JPG')
+				jpgName = pdfDeriv['filename'].replace('pdf','jpg')
 			elif altoDeriv:
-				jpgName = pageArray[pageID]['alto']['filename'].replace('xml','jpg').replace('alto','images/jpg')
+				jpgID = altoDeriv['ID'].replace('ALTO','JPG')
+				jpgName = altoDeriv['filename'].replace('xml','jpg').replace('alto','images/jpg')
 			else:
-				jpgName = 'unknown jpg'
-			missingFilenameArray[pageID].append(jpgName)
+				jpgID = 'unknown JPG ID'
+				jpgName = 'unknown JPG filename'
+			missingFilenameArray[pageID][jpgID] = jpgName
 		
 		
 		if altoDeriv:
-			if pageArray[pageID]['alto']['filename'] == None:
+			if altoDeriv['filename'] == None:
 				if pdfDeriv:
-					altoName = pageArray[pageID]['pdf']['filename'].replace('.pdf','.xml').replace('images/pdf','alto')
+					altoID = pdfDeriv['ID'].replace('PDF','ALTO')
+					altoName = pdfDeriv['filename'].replace('.pdf','.xml').replace('images/pdf','alto')
 				elif jpgDeriv:
-					altoName = pageArray[pageID]['jpg']['filename'].replace('.jpg','.xml').replace('images/jpg','alto')
+					altoID = jpgDeriv['ID'].replace('JPG','ALTO')
+					altoName = jpgDeriv['filename'].replace('.jpg','.xml').replace('images/jpg','alto')
 				else:
-					altoName = 'unknown alto'
-				missingFilenameArray[pageID].append(altoName)
+					altoID = 'unknown ALTO ID'
+					altoName = 'unknown ALTO filename'
+				missingFilenameArray[pageID][altoID] = altoName
 		else:
 			if pdfDeriv:
-				altoName = pageArray[pageID]['pdf']['filename'].replace('.pdf','.xml').replace('images/pdf','alto')
+				altoID = pdfDeriv['ID'].replace('PDF','ALTO')
+				altoName = pdfDeriv['filename'].replace('.pdf','.xml').replace('images/pdf','alto')
 			elif jpgDeriv:
-				altoName = pageArray[pageID]['jpg']['filename'].replace('.jpg','.xml').replace('images/jpg','alto')
+				altoID = jpgDeriv['ID'].replace('JPG','ALTO')
+				altoName = jpgDeriv['filename'].replace('.jpg','.xml').replace('images/jpg','alto')
 			else:
-				altoName = 'unknown alto'
-			missingFilenameArray[pageID].append(altoName)
+				altoID = 'unknown ALTO ID'
+				altoName = 'unknown ALTO filename'
+			missingFilenameArray[pageID][altoID] = altoName
 		
-	# print('\nmissingFilenameArray\n')
-	# print(missingFilenameArray)
 	return missingFilenameArray
 
 def validateTechMd(xmlin):
@@ -322,7 +323,6 @@ def logDescMd(xmlin):
 			descMdArray[mtree.getpath(elem)] = elem.text
 		
 	return descMdArray
-	# print(descMdArray)
 
 def createCuratorReport(reportname):
 
@@ -343,7 +343,122 @@ def writeToCuratorReport(reportname,reportarray):
 			w.writerow(row)
 
 
-def loggingOutput(xmlin,reportname):
+# def loggingOutput(xmlin):
+	
+	# errorArray = {}
+	# curatorReportArray = {}
+	
+	# validXmlArray = validateXML(xmlin)
+	# metsFileName = validXmlArray['mets']
+	
+	# errorArray[metsFileName] = {}
+	# curatorReportArray[metsFileName] = {}
+	
+	# quit()
+	
+	# if validXmlArray.get('value-ok') or validXmlArray.get('io-ok') or validXmlArray.get('well-formed') or validXmlArray.get('valid'):
+		# if validXmlArray['value-ok'] == False or validXmlArray['io-ok'] == False or validXmlArray['well-formed'] == False or  validXmlArray['valid'] == False:
+			# errorArray[metsFileName] = {
+				# 'validation errors' : validXmlArray
+			# }
+			
+			# curatorReportArray[metsFileName] = {
+				# 'Valid METS' : 'No'
+			# }
+		
+		# else:
+			# curatorReportArray[metsFileName] = {
+				# 'Valid METS' : 'Yes'
+			# }
+	
+	# descMdArray = logDescMd(xmlin)
+	
+	# curatorReportArray[metsFileName].update(descMdArray)
+	
+	# pathStatusArray = buildPathStatusArray(xmlin)
+	# errorArray[metsFileName]['files in mets not in package'] = []
+	
+	# for path in pathStatusArray:
+		# if pathStatusArray[path] == False:
+			# errorArray[metsFileName]['files in mets not in package'].append(path)
+	
+	# if errorArray[metsFileName]['files in mets not in package'] == []:
+		# errorArray[metsFileName].pop('files in mets not in package')
+		# curatorReportArray[metsFileName]['All files from METS present in package'] = 'Yes'
+	# else:
+		# curatorReportArray[metsFileName]['All files from METS present in package'] = 'No'
+	
+	# dirStatusArray = buildDirStatusArray(xmlin)
+	# errorArray[metsFileName]['files in package not in mets'] = []
+	
+	# for path in dirStatusArray:
+		# if dirStatusArray[path] == False:
+			# errorArray[metsFileName]['files in package not in mets'].append(path)
+			
+	# if errorArray[metsFileName]['files in package not in mets'] == []:
+		# errorArray[metsFileName].pop('files in package not in mets')
+		# curatorReportArray[metsFileName]['All files in package present in METS'] = 'Yes'
+	# else:
+		# curatorReportArray[metsFileName]['All files in package present in METS'] = 'No'
+		
+	# pageArray, pageCounter = buildPageArray(xmlin)
+	
+	# missingFilenameArray = buildMissingFilenameArray(xmlin)
+	
+	# curatorReportArray[metsFileName]['Number of pages'] = pageCounter
+	# errorArray[metsFileName]['missing derivatives in structMap'] = {}
+	
+	# for page in missingFilenameArray:
+		# errorArray[metsFileName]['missing derivatives in structMap'][page] = []
+		# if missingFilenameArray[page] != {}:
+			# errorArray[metsFileName]['missing derivatives in structMap'][page].append(missingFilenameArray[page])
+		
+		# if errorArray[metsFileName]['missing derivatives in structMap'][page] == []:
+			# errorArray[metsFileName]['missing derivatives in structMap'].pop(page)
+			
+	# if errorArray[metsFileName]['missing derivatives in structMap'] == {}:
+		# errorArray[metsFileName].pop('missing derivatives in structMap')
+		# curatorReportArray[metsFileName]['Each page has PDF, JPG, and Alto'] = 'Yes'
+	# else:
+		# curatorReportArray[metsFileName]['Each page has PDF, JPG, and Alto'] = 'No'
+				
+	# techMdStatusArray = validateTechMd(xmlin)
+	# errorArray[metsFileName]['missing technical metadata'] = []
+	
+	# for jpgFile in techMdStatusArray:
+		# if techMdStatusArray[jpgFile]['techMD'] == False:
+			# errorArray[metsFileName]['missing technical metadata'].append(jpgFile)
+			
+	# if errorArray[metsFileName]['missing technical metadata'] == []:
+		# errorArray[metsFileName].pop('missing technical metadata')
+		# curatorReportArray[metsFileName]['Technical metadata for each JPG'] = 'Yes'
+	# else:
+		# curatorReportArray[metsFileName]['Technical metadata for each JPG'] = 'False'
+	
+	# return errorArray, curatorReportArray
+	# if errorArray[metsFileName] != {}:
+	
+		# with open(logfile, 'a') as f:
+			# f.write(json.dumps(errorArray, indent=4))
+	
+	# writeToCuratorReport(reportname,curatorReportArray)
+
+def findMetsFiles(rootfolder):
+
+	metsFileList = []
+	
+	for root, dirs, files in os.walk(rootfolder):
+		for name in files:
+			if '_mets.xml' in name:
+				metsFileList.append(os.path.join(root,name).replace('\\','/'))
+	
+	return metsFileList
+
+createCuratorReport('report.csv')
+
+open('test.log', 'w')
+
+for xmlin in findMetsFiles(sys.argv[1]):
 	
 	errorArray = {}
 	curatorReportArray = {}
@@ -353,28 +468,30 @@ def loggingOutput(xmlin,reportname):
 	
 	errorArray[metsFileName] = {}
 	curatorReportArray[metsFileName] = {}
-	
+
 	if validXmlArray['value-ok'] == False or validXmlArray['io-ok'] == False or validXmlArray['well-formed'] == False or  validXmlArray['valid'] == False:
+		
 		errorArray[metsFileName] = {
 			'validation errors' : validXmlArray
 		}
-		print(json.dumps(errorArray, indent=4))
 		
+		with open('test.log', 'a') as f:
+			f.write(json.dumps(errorArray, indent=4))
+			
 		curatorReportArray[metsFileName] = {
 			'Valid METS' : 'No'
 		}
 		
-		writeToCuratorReport(reportname,curatorReportArray)
+		writeToCuratorReport('report.csv',curatorReportArray)
 		
-		quit()
-	
-	else:
-		curatorReportArray[metsFileName] = {
-			'Valid METS' : 'Yes'
-		}
+		continue
+		
+	curatorReportArray[metsFileName] = {
+		'Valid METS' : 'Yes'
+	}
 	
 	descMdArray = logDescMd(xmlin)
-	
+
 	curatorReportArray[metsFileName].update(descMdArray)
 	
 	pathStatusArray = buildPathStatusArray(xmlin)
@@ -412,7 +529,7 @@ def loggingOutput(xmlin,reportname):
 	
 	for page in missingFilenameArray:
 		errorArray[metsFileName]['missing derivatives in structMap'][page] = []
-		if missingFilenameArray[page] != []:
+		if missingFilenameArray[page] != {}:
 			errorArray[metsFileName]['missing derivatives in structMap'][page].append(missingFilenameArray[page])
 		
 		if errorArray[metsFileName]['missing derivatives in structMap'][page] == []:
@@ -435,27 +552,13 @@ def loggingOutput(xmlin,reportname):
 		errorArray[metsFileName].pop('missing technical metadata')
 		curatorReportArray[metsFileName]['Technical metadata for each JPG'] = 'Yes'
 	else:
-		curatorReportArray[metsFileName]['Technical metadata for each JPG'] = 'False'
+		curatorReportArray[metsFileName]['Technical metadata for each JPG'] = 'No'
 	
-	if errorArray[metsFileName] != {}:
-		print(json.dumps(errorArray, indent=4))
+	if errorArray[xmlin] != {}:
 	
-	writeToCuratorReport(reportname,curatorReportArray)
-
-def findMetsFiles(rootfolder):
-
-	metsFileList = []
+		with open('test.log', 'a') as f:
+			f.write(json.dumps(errorArray, indent=4))
 	
-	for root, dirs, files in os.walk(rootfolder):
-		for name in files:
-			if '_mets.xml' in name:
-				metsFileList.append(os.path.join(root,name).replace('\\','/'))
-	
-	return metsFileList
-
-createCuratorReport('report.csv')
-
-for metsFile in findMetsFiles('M:\mets-data'):
-	loggingOutput(metsFile,'report.csv')
+	writeToCuratorReport('report.csv',curatorReportArray)
 	
 
