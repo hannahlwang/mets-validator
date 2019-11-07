@@ -120,11 +120,14 @@ def buildPathStatusArray(xmlin):
 	
 	filePathArray = buildFilePathList(xmlin)
 	
+	rootDir = os.path.dirname(xmlin)
+	
 	# compare each file in pathlist against the contents of the system
 	pathStatusArray = {}
 	
 	for filePath in filePathArray.values():
-		pathStatusArray[filePath] = os.path.exists(filePath)
+		# fullFilePath = os.path.join
+		pathStatusArray[filePath] = os.path.exists(os.path.join(rootDir,filePath))
 	
 	return pathStatusArray
 	# print(pathStatusArray)
@@ -134,12 +137,16 @@ def buildDirStatusArray(xmlin):
 	
 	filePathArray = buildFilePathList(xmlin)
 	
+	rootDir = os.path.dirname(xmlin)
+	
 	# create list of files in system
 	dirList = []
 
-	for root, dirs, files in os.walk('.'):
+	for root, dirs, files in os.walk(rootDir):
 		for name in files:
-			dirList.append(os.path.join(root,name).replace('\\','/'))
+			dirList.append(os.path.join(root,name).replace('\\','/').replace(rootDir,'.'))
+	
+	dirList.remove(xmlin.replace('\\','/').replace(rootDir,'.'))
 	
 	# compare each file in system list against the METS pathlist
 	dirStatusArray = {}
@@ -196,9 +203,6 @@ def buildPageArray(xmlin):
 def buildMissingFilenameArray(xmlin):
 	
 	pageArray, pageCounter = buildPageArray(xmlin)
-	
-	# print('\npageArray\n')
-	# print(json.dumps(pageArray, indent=4))
 	
 	missingFilenameArray = {}
 	
@@ -303,41 +307,43 @@ def logDescMd(xmlin):
 	
 	descMdArray = {}
 	
+	metsHdr = root.find('./mets:metsHdr', ns)
+	
+	for elem in metsHdr.iter():
+		mhtree = etree.ElementTree(metsHdr)
+		if elem.text:
+			descMdArray[mhtree.getpath(elem)] = elem.text
+	
 	mods = root.find('./mets:dmdSec/mets:mdWrap/mets:xmlData/mods:mods', ns)
 	
-	title = mods.find('./mods:titleInfo/mods:title', ns).text
-	descMdArray['Title'] = title
-	
-	dateIssued = mods.find('./mods:originInfo/mods:dateIssued', ns).text
-	descMdArray['Date issued'] = dateIssued
-	
-	edition = mods.find('./mods:originInfo/mods:edition', ns).text
-	descMdArray['Edition'] = edition
-	
-	language = mods.find('./mods:language/mods:languageTerm', ns).text
-	descMdArray['Language'] = language
-	
-	catalogueIdentifier = mods.find("./mods:identifier[@type='CatalogueIdentifier']", ns).text
-	descMdArray['Catalogue identifier'] = catalogueIdentifier
-	
-	lccn = mods.find("./mods:identifier[@type='lccn']", ns).text
-	descMdArray['lccn'] = lccn
+	for elem in mods.iter():
+		mtree = etree.ElementTree(mods)
+		if elem.text:
+			descMdArray[mtree.getpath(elem)] = elem.text
 		
 	return descMdArray
+	# print(descMdArray)
 
-def createCuratorReport(reportname,reportarray):
-	fields = ['METS filename','Valid METS','Title','Date issued', 'Edition', 'Language', 'Catalogue identifier', 'lccn', 'Number of pages', 'All files from METS present in package', 'All files in package present in METS', 'Each page has PDF, JPG, and Alto', 'Technical metadata for each JPG']
+def createCuratorReport(reportname):
+
+	fields = ['METS filename','Valid METS','/mets:metsHdr/mets:agent[1]/mets:name', '/mets:metsHdr/mets:agent[2]/mets:name', '/mets:metsHdr/mets:agent[3]/mets:name', '/mods:mods/mods:titleInfo/mods:title', '/mods:mods/mods:typeOfResource', '/mods:mods/mods:genre', '/mods:mods/mods:originInfo/mods:dateIssued', '/mods:mods/mods:originInfo/mods:edition', '/mods:mods/mods:language/mods:languageTerm', '/mods:mods/mods:identifier[1]', '/mods:mods/mods:identifier[2]', '/mods:mods/mods:identifier[3]', '/mods:mods/mods:recordInfo/mods:recordContentSource', 'Number of pages', 'All files from METS present in package', 'All files in package present in METS', 'Each page has PDF, JPG, and Alto', 'Technical metadata for each JPG']
 	
 	with open(reportname, 'w') as f:
 		w = csv.DictWriter(f, fieldnames=fields, lineterminator='\n')
 		w.writeheader()
+			
+def writeToCuratorReport(reportname,reportarray):
+	fields = ['METS filename','Valid METS','/mets:metsHdr/mets:agent[1]/mets:name', '/mets:metsHdr/mets:agent[2]/mets:name', '/mets:metsHdr/mets:agent[3]/mets:name', '/mods:mods/mods:titleInfo/mods:title', '/mods:mods/mods:typeOfResource', '/mods:mods/mods:genre', '/mods:mods/mods:originInfo/mods:dateIssued', '/mods:mods/mods:originInfo/mods:edition', '/mods:mods/mods:language/mods:languageTerm', '/mods:mods/mods:identifier[1]', '/mods:mods/mods:identifier[2]', '/mods:mods/mods:identifier[3]', '/mods:mods/mods:recordInfo/mods:recordContentSource', 'Number of pages', 'All files from METS present in package', 'All files in package present in METS', 'Each page has PDF, JPG, and Alto', 'Technical metadata for each JPG']
+	
+	with open(reportname, 'a') as f:
+		w = csv.DictWriter(f, fieldnames=fields, lineterminator='\n')
 		for key,val in sorted(reportarray.items()):
 			row = {'METS filename':key}
 			row.update(val)
 			w.writerow(row)
 
 
-def loggingOutput(xmlin):
+def loggingOutput(xmlin,reportname):
 	
 	errorArray = {}
 	curatorReportArray = {}
@@ -358,7 +364,7 @@ def loggingOutput(xmlin):
 			'Valid METS' : 'No'
 		}
 		
-		createCuratorReport('report.csv',curatorReportArray)
+		writeToCuratorReport(reportname,curatorReportArray)
 		
 		quit()
 	
@@ -399,11 +405,7 @@ def loggingOutput(xmlin):
 		
 	pageArray, pageCounter = buildPageArray(xmlin)
 	
-	# derivStatusArray = validateDerivs(xmlin)
-	
 	missingFilenameArray = buildMissingFilenameArray(xmlin)
-	
-	# print(json.dumps(missingFilenameArray, indent=4))
 	
 	curatorReportArray[metsFileName]['Number of pages'] = pageCounter
 	errorArray[metsFileName]['missing derivatives in structMap'] = {}
@@ -435,17 +437,25 @@ def loggingOutput(xmlin):
 	else:
 		curatorReportArray[metsFileName]['Technical metadata for each JPG'] = 'False'
 	
-	print(json.dumps(errorArray, indent=4))
-	# print(json.dumps(curatorReportArray, indent=4))
+	if errorArray[metsFileName] != {}:
+		print(json.dumps(errorArray, indent=4))
 	
-	createCuratorReport('report.csv',curatorReportArray)
+	writeToCuratorReport(reportname,curatorReportArray)
 
-def metsValidator(metsfile):
-	# buildPathStatusArray(metsfile)
-	# buildDirStatusArray(metsfile)
-	# validateDerivs(metsfile)
-	# buildMissingFilenameArray(metsfile)
-	loggingOutput(metsfile)
+def findMetsFiles(rootfolder):
 
+	metsFileList = []
 	
-metsValidator('wisconsinstatejournal_20190328_mets.xml')
+	for root, dirs, files in os.walk(rootfolder):
+		for name in files:
+			if '_mets.xml' in name:
+				metsFileList.append(os.path.join(root,name).replace('\\','/'))
+	
+	return metsFileList
+
+createCuratorReport('report.csv')
+
+for metsFile in findMetsFiles('M:\mets-data'):
+	loggingOutput(metsFile,'report.csv')
+	
+
