@@ -406,18 +406,18 @@ def loggingOutput(xmlin):
 	# print(json.dumps(missingFilenameArray, indent=4))
 	
 	curatorReportArray[metsFileName]['Number of pages'] = pageCounter
-	errorArray[metsFileName]['missing derivatives'] = {}
+	errorArray[metsFileName]['missing derivatives in structMap'] = {}
 	
 	for page in missingFilenameArray:
-		errorArray[metsFileName]['missing derivatives'][page] = []
+		errorArray[metsFileName]['missing derivatives in structMap'][page] = []
 		if missingFilenameArray[page] != []:
-			errorArray[metsFileName]['missing derivatives'][page].append(missingFilenameArray[page])
+			errorArray[metsFileName]['missing derivatives in structMap'][page].append(missingFilenameArray[page])
 		
-		if errorArray[metsFileName]['missing derivatives'][page] == []:
-			errorArray[metsFileName]['missing derivatives'].pop(page)
+		if errorArray[metsFileName]['missing derivatives in structMap'][page] == []:
+			errorArray[metsFileName]['missing derivatives in structMap'].pop(page)
 			
-	if errorArray[metsFileName]['missing derivatives'] == {}:
-		errorArray[metsFileName].pop('missing derivatives')
+	if errorArray[metsFileName]['missing derivatives in structMap'] == {}:
+		errorArray[metsFileName].pop('missing derivatives in structMap')
 		curatorReportArray[metsFileName]['Each page has PDF, JPG, and Alto'] = 'Yes'
 	else:
 		curatorReportArray[metsFileName]['Each page has PDF, JPG, and Alto'] = 'No'
