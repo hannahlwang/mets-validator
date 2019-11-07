@@ -1757,9 +1757,9 @@
 				<mets:file ID="FID-00000010-PDF" SEQ="10" MIMETYPE="application/pdf">
 					<mets:FLocat LOCTYPE="URL" xlink:href="./images/pdf/mni_wsjo_032819_01_a_010_00_01_nw.001.pdf"/>
 				</mets:file>
-				<!-- <mets:file ID="FID-00000011-PDF" SEQ="11" MIMETYPE="application/pdf"> -->
-					<!-- <mets:FLocat LOCTYPE="URL" xlink:href="./images/pdf/mni_wsjo_032819_01_a_011_00_01_nw.pdf"/> -->
-				<!-- </mets:file> -->
+				<mets:file ID="FID-00000011-PDF" SEQ="11" MIMETYPE="application/pdf">
+					<mets:FLocat LOCTYPE="URL" xlink:href="./images/pdf/mni_wsjo_032819_01_a_011_00_01_nw.pdf"/>
+				</mets:file>
 				<mets:file ID="FID-00000012-PDF" SEQ="12" MIMETYPE="application/pdf">
 					<mets:FLocat LOCTYPE="URL" xlink:href="./images/pdf/mni_wsjo_032819_01_a_012_00_01_nw.pdf"/>
 				</mets:file>
@@ -2242,7 +2242,7 @@
 			<mets:div ID="phys25" ORDER="25" ORDERLABEL="25" TYPE="page">
 				<mets:fptr FILEID="FID-00000025-PDF"/>
 				<mets:fptr FILEID="FID-00000025-JPG"/>
-				<mets:fptr FILEID="FID-00000025-ALTO"/>
+				<!-- <mets:fptr FILEID="FID-00000025-ALTO"/> -->
 			</mets:div>
 			<mets:div ID="phys26" ORDER="26" ORDERLABEL="26" TYPE="page">
 				<mets:fptr FILEID="FID-00000026-PDF"/>
