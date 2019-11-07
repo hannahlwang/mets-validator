@@ -2326,8 +2326,8 @@
 			</mets:div>
 			<mets:div ID="phys42" ORDER="42" ORDERLABEL="42" TYPE="page">
 				<!-- <mets:fptr FILEID="FID-00000042-PDF"/> -->
-				<!-- <mets:fptr FILEID="FID-00000042-JPG"/> -->
-				<mets:fptr FILEID="FID-00000042-ALTO"/>
+				<mets:fptr FILEID="FID-00000042-JPG"/>
+				<!-- <mets:fptr FILEID="FID-00000042-ALTO"/> -->
 			</mets:div>
 		</mets:div>
 	</mets:structMap>

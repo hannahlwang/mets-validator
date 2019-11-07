@@ -206,117 +206,69 @@ def buildMissingFilenameArray(xmlin):
 
 		missingFilenameArray[pageID] = []
 		
-		if 'pdf' in pageArray[pageID]:
+		pdfDeriv = pageArray[pageID].get('pdf')
+		jpgDeriv = pageArray[pageID].get('jpg')
+		altoDeriv = pageArray[pageID].get('alto')
+		
+		if pdfDeriv:
 			if pageArray[pageID]['pdf']['filename'] == None:
-				try:
+				if jpgDeriv:
 					pdfName = pageArray[pageID]['jpg']['filename'].replace('jpg','pdf')
-					missingFilenameArray[pageID].append(pdfName)
-				except:
+				elif altoDeriv:
 					pdfName = pageArray[pageID]['alto']['filename'].replace('xml','pdf').replace('alto','images/pdf')
-					missingFilenameArray[pageID].append(pdfName)
-				finally:
-					pdfName = None
-		elif 'pdf' not in pageArray[pageID]:
-			try:
+				else:
+					pdfName = 'unknown pdf'
+				missingFilenameArray[pageID].append(pdfName)
+		else:
+			if jpgDeriv:
 				pdfName = pageArray[pageID]['jpg']['filename'].replace('jpg','pdf')
-				missingFilenameArray[pageID].append(pdfName)
-			except:
+			elif altoDeriv:
 				pdfName = pageArray[pageID]['alto']['filename'].replace('xml','pdf').replace('alto','images/pdf')
-				missingFilenameArray[pageID].append(pdfName)
-			finally:
-				pdfName = None
+			else:
+				pdfName = 'unknown pdf'
+			missingFilenameArray[pageID].append(pdfName)
 				
 				
-		if 'jpg' in pageArray[pageID]:
+		if jpgDeriv:
 			if pageArray[pageID]['jpg']['filename'] == None:
-				try:
+				if pdfDeriv:
 					jpgName = pageArray[pageID]['pdf']['filename'].replace('pdf','jpg')
-					missingFilenameArray[pageID].append(jpgName)
-				except:
+				elif altoDeriv:
 					jpgName = pageArray[pageID]['alto']['filename'].replace('xml','jpg').replace('alto','images/jpg')
-					missingFilenameArray[pageID].append(jpgName)
-				finally:
-					jpgName = None
-		elif 'jpg' not in pageArray[pageID]:
-			try:
+				else:
+					jpgName = 'unknown jpg'
+				missingFilenameArray[pageID].append(jpgName)
+		else:
+			if pdfDeriv:
 				jpgName = pageArray[pageID]['pdf']['filename'].replace('pdf','jpg')
-				missingFilenameArray[pageID].append(jpgName)
-			except:
+			elif altoDeriv:
 				jpgName = pageArray[pageID]['alto']['filename'].replace('xml','jpg').replace('alto','images/jpg')
-				missingFilenameArray[pageID].append(jpgName)
-			finally:
-				jpgName = None
+			else:
+				jpgName = 'unknown jpg'
+			missingFilenameArray[pageID].append(jpgName)
 		
 		
-		if 'alto' in pageArray[pageID]:
+		if altoDeriv:
 			if pageArray[pageID]['alto']['filename'] == None:
-				try:
+				if pdfDeriv:
 					altoName = pageArray[pageID]['pdf']['filename'].replace('.pdf','.xml').replace('images/pdf','alto')
-					missingFilenameArray[pageID].append(altoName)
-				except:
+				elif jpgDeriv:
 					altoName = pageArray[pageID]['jpg']['filename'].replace('.jpg','.xml').replace('images/jpg','alto')
-					missingFilenameArray[pageID].append(altoName)
-				finally:
-					altoName = None
-		elif 'alto' not in pageArray[pageID]:
-			try:
+				else:
+					altoName = 'unknown alto'
+				missingFilenameArray[pageID].append(altoName)
+		else:
+			if pdfDeriv:
 				altoName = pageArray[pageID]['pdf']['filename'].replace('.pdf','.xml').replace('images/pdf','alto')
-				missingFilenameArray[pageID].append(altoName)
-			except:
+			elif jpgDeriv:
 				altoName = pageArray[pageID]['jpg']['filename'].replace('.jpg','.xml').replace('images/jpg','alto')
-				missingFilenameArray[pageID].append(altoName)
-			finally:
-				altoName = None
+			else:
+				altoName = 'unknown alto'
+			missingFilenameArray[pageID].append(altoName)
 		
 	# print('\nmissingFilenameArray\n')
 	# print(missingFilenameArray)
 	return missingFilenameArray
-				
-# def validateDerivs(xmlin):
-
-	# pageArray, pageCounter = buildPageArray(xmlin)
-	
-	# print('\npageArray\n')
-	# print(json.dumps(pageArray, indent=4))
-	
-	# derivStatusArray = {}
-		
-	# for pageID in pageArray:
-	
-		# derivStatusArray[pageID] = {}
-		
-		# if 'pdf' in pageArray[pageID]:
-			# if pageArray[pageID]['pdf']['filename'] == None:
-				# derivStatusArray[pageID]['pdf'] = False
-			# else:
-				# derivStatusArray[pageID]['pdf'] = True
-		# elif 'pdf' not in pageArray[pageID]:
-			# derivStatusArray[pageID]['pdf'] = False
-			
-		# if 'jpg' in pageArray[pageID]:
-			# if pageArray[pageID]['jpg']['filename'] == None:
-				# derivStatusArray[pageID]['jpg'] = False
-			# else:
-				# derivStatusArray[pageID]['jpg'] = True
-		# elif 'jpg' not in pageArray[pageID]:
-			# derivStatusArray[pageID]['jpg'] = False
-			
-		# if 'alto' in pageArray[pageID]:
-			# if pageArray[pageID]['alto']['filename'] == None:
-				# derivStatusArray[pageID]['alto'] = False
-			# else:
-				# derivStatusArray[pageID]['alto'] = True
-		# elif 'alto' not in pageArray[pageID]:
-			# derivStatusArray[pageID]['alto'] = False
-			
-	# return derivStatusArray
-	
-	# print('\nfilePathArray\n')
-	# print(json.dumps(filePathArray, indent=4))
-	# print('\npageArray\n')
-	# print(json.dumps(pageArray, indent=4))
-	# print('\nderivStatusArray\n')
-	# print(json.dumps(derivStatusArray, indent=4))
 
 def validateTechMd(xmlin):
 	
@@ -451,6 +403,8 @@ def loggingOutput(xmlin):
 	
 	missingFilenameArray = buildMissingFilenameArray(xmlin)
 	
+	# print(json.dumps(missingFilenameArray, indent=4))
+	
 	curatorReportArray[metsFileName]['Number of pages'] = pageCounter
 	errorArray[metsFileName]['missing derivatives'] = {}
 	
@@ -458,12 +412,6 @@ def loggingOutput(xmlin):
 		errorArray[metsFileName]['missing derivatives'][page] = []
 		if missingFilenameArray[page] != []:
 			errorArray[metsFileName]['missing derivatives'][page].append(missingFilenameArray[page])
-		
-	# for page in derivStatusArray:
-		# errorArray[metsFileName]['missing derivatives'][page] = []
-		# for deriv in derivStatusArray[page]:
-			# if derivStatusArray[page][deriv] == False:
-				# errorArray[metsFileName]['missing derivatives'][page].append(deriv)
 		
 		if errorArray[metsFileName]['missing derivatives'][page] == []:
 			errorArray[metsFileName]['missing derivatives'].pop(page)
