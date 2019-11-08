@@ -31,27 +31,14 @@ def validateXML(xmlschema, xmlin):
     'valid':''
     }
         
-    # # open and read schema file
-    # xsdin = 'http://www.loc.gov/standards/mets/mets.xsd'
-    # with urlopen(xsdin) as schema_file:
-        # schema_to_check = schema_file.read()
-        
     # open and read xml file
     with open(xmlin, 'r') as xml_file:
         xml_to_check = xml_file.read()
-    
-    # #parse schema and load into memory as xmlschema_doc
-    # xmlschema_doc = etree.fromstring(schema_to_check)
-    # xmlschema = etree.XMLSchema(xmlschema_doc)
-    
+
     # parse xml
-    
     try:
-        # tree = etree.parse(StringIO(xml_to_check))
-        # print(tree)
         utf8_parser = etree.XMLParser(encoding='utf-8')
         doc = etree.fromstring(xml_to_check.encode('utf-8'), parser=utf8_parser)
-        # print(doc)
         validXmlArray['value-ok'] = True
         validXmlArray['io-ok'] = True
         validXmlArray['well-formed'] = True
@@ -97,8 +84,6 @@ def parseMETS(xmlin):
     # parse xml and get root
     utf8_parser = etree.XMLParser(encoding='utf-8')
     root = etree.fromstring(xml_to_check.encode('utf-8'), parser=utf8_parser)
-    # tree = etree.parse(StringIO(xml_to_check))
-    # root = tree.getroot()
     
     # define XML namespaces
     ns = {
