@@ -393,9 +393,6 @@ with open('report.csv', 'w') as f:
 
 open('output.log', 'w')
 
-# openTime = datetime.now()
-# print('openTime ' + str(openTime - startTime))
-
 # open and read schema file
 xsdin = 'http://www.loc.gov/standards/mets/mets.xsd'
 with urlopen(xsdin) as schema_file:
@@ -407,7 +404,6 @@ xmlschema = etree.XMLSchema(xmlschema_doc)
 
 for xmlin in findMetsFiles(sys.argv[1]):
     
-    # startLoopTime = datetime.now()
     
     errorArray = {}
     curatorReportArray = {}
@@ -417,8 +413,6 @@ for xmlin in findMetsFiles(sys.argv[1]):
     
     errorArray[metsFileName] = {}
     curatorReportArray[metsFileName] = {}
-    
-    # print(metsFileName)
 
     if validXmlArray['value-ok'] == False or validXmlArray['io-ok'] == False or validXmlArray['well-formed'] == False or  validXmlArray['valid'] == False:
         
@@ -435,9 +429,6 @@ for xmlin in findMetsFiles(sys.argv[1]):
         
         writeToCuratorReport('report.csv',curatorReportArray)
         
-        # invalidTime = datetime.now()
-        # print('invalidTime ' + str(invalidTime - startLoopTime))
-        
         continue
         
     curatorReportArray[metsFileName] = {
@@ -447,11 +438,7 @@ for xmlin in findMetsFiles(sys.argv[1]):
     descMdArray = logDescMd(xmlin)
 
     curatorReportArray[metsFileName].update(descMdArray)
-    
-    # descMdTime = datetime.now()
-    # print('descMdTime ' + str(descMdTime - startLoopTime))
-    
-    # THIS IS TAKING THE LONGEST
+
     pathStatusArray = buildPathStatusArray(xmlin)
     errorArray[metsFileName]['files in mets not in package'] = []
     
@@ -465,9 +452,6 @@ for xmlin in findMetsFiles(sys.argv[1]):
     else:
         curatorReportArray[metsFileName]['All files from METS present in package'] = 'No'
     
-    # pathStatusTime = datetime.now()
-    # print('pathStatusTime ' + str(pathStatusTime - descMdTime))
-    
     dirStatusArray = buildDirStatusArray(xmlin)
     errorArray[metsFileName]['files in package not in mets'] = []
     
@@ -480,9 +464,6 @@ for xmlin in findMetsFiles(sys.argv[1]):
         curatorReportArray[metsFileName]['All files in package present in METS'] = 'Yes'
     else:
         curatorReportArray[metsFileName]['All files in package present in METS'] = 'No'
-    
-    # dirStatusTime = datetime.now()
-    # print('dirStatusTime ' + str(dirStatusTime - pathStatusTime))
     
     pageArray, pageCounter = buildPageArray(xmlin)
     
@@ -505,9 +486,6 @@ for xmlin in findMetsFiles(sys.argv[1]):
     else:
         curatorReportArray[metsFileName]['Each page has PDF, JPG, and Alto'] = 'No'
     
-    # derivTime = datetime.now()
-    # print('derivTime ' + str(derivTime - dirStatusTime))
-    
     techMdStatusArray = validateTechMd(xmlin)
     errorArray[metsFileName]['missing technical metadata'] = {}
     
@@ -521,14 +499,9 @@ for xmlin in findMetsFiles(sys.argv[1]):
     else:
         curatorReportArray[metsFileName]['Technical metadata for each JPG'] = 'No'
     
-    # techTime = datetime.now()
-    # print('techTime ' + str(techTime - derivTime))
-    
     if errorArray[xmlin] != {}:
     
         with open('output.log', 'a') as f:
             f.write(json.dumps(errorArray, indent=4))
     
     writeToCuratorReport('report.csv',curatorReportArray)
-    
-# print('totalTime ' + str(datetime.now() - startTime))
