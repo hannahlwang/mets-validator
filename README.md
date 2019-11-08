@@ -72,4 +72,5 @@ Output is only created if errors are raised. For each xml file that raises an er
             fileID: filename
         }
     }
+}
 ```
