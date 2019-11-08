@@ -19,10 +19,8 @@ import csv
 import itertools
 from datetime import datetime
 
-startTime = datetime.now()
-
 # validate XML against METS XSD schema
-def validateXML(xmlin):
+def validateXML(xmlschema, xmlin):
 
     # create report array
     validXmlArray = {
@@ -33,18 +31,18 @@ def validateXML(xmlin):
     'valid':''
     }
         
-    # open and read schema file
-    xsdin = 'http://www.loc.gov/standards/mets/mets.xsd'
-    with urlopen(xsdin) as schema_file:
-        schema_to_check = schema_file.read()
+    # # open and read schema file
+    # xsdin = 'http://www.loc.gov/standards/mets/mets.xsd'
+    # with urlopen(xsdin) as schema_file:
+        # schema_to_check = schema_file.read()
         
     # open and read xml file
     with open(xmlin, 'r') as xml_file:
         xml_to_check = xml_file.read()
     
-    #parse schema and load into memory as xmlschema_doc
-    xmlschema_doc = etree.fromstring(schema_to_check)
-    xmlschema = etree.XMLSchema(xmlschema_doc)
+    # #parse schema and load into memory as xmlschema_doc
+    # xmlschema_doc = etree.fromstring(schema_to_check)
+    # xmlschema = etree.XMLSchema(xmlschema_doc)
     
     # parse xml
     
@@ -127,19 +125,33 @@ def buildFilePathList(xmlin):
         filePathArray[fileId] = filePath
     
     return filePathArray
+    
+def buildDirList(xmlin):
+    
+    rootDir = os.path.dirname(xmlin)
+    
+    dirList = []
+
+    for root, dirs, files in os.walk(rootDir):
+        for name in files:
+            dirList.append(os.path.join(root,name).replace('\\','/').replace(rootDir,'.'))
+    
+    dirList.remove(xmlin.replace('\\','/').replace(rootDir,'.'))
+    
+    return dirList
 
 # check whether file paths in METS (in filePathArray) exist in package or not, build array of paths and statuses (boolean)
 def buildPathStatusArray(xmlin):
     
     filePathArray = buildFilePathList(xmlin)
     
-    rootDir = os.path.dirname(xmlin)
+    dirList = buildDirList(xmlin)
     
     # compare each file in pathlist against the contents of the system
     pathStatusArray = {}
     
     for filePath in filePathArray.values():
-        pathStatusArray[filePath] = os.path.exists(os.path.join(rootDir,filePath))
+        pathStatusArray[filePath] = filePath in dirList
     
     return pathStatusArray
 
@@ -148,16 +160,7 @@ def buildDirStatusArray(xmlin):
     
     filePathArray = buildFilePathList(xmlin)
     
-    rootDir = os.path.dirname(xmlin)
-    
-    # create list of files in system
-    dirList = []
-
-    for root, dirs, files in os.walk(rootDir):
-        for name in files:
-            dirList.append(os.path.join(root,name).replace('\\','/').replace(rootDir,'.'))
-    
-    dirList.remove(xmlin.replace('\\','/').replace(rootDir,'.'))
+    dirList = buildDirList(xmlin)
     
     # compare each file in system list against the METS pathlist
     dirStatusArray = {}
@@ -380,6 +383,8 @@ def findMetsFiles(rootfolder):
     
     return metsFileList
 
+# startTime = datetime.now()
+
 fields = ['METS filename','Valid METS','/mets:metsHdr/mets:agent[1]/mets:name', '/mets:metsHdr/mets:agent[2]/mets:name', '/mets:metsHdr/mets:agent[3]/mets:name', '/mods:mods/mods:titleInfo/mods:title', '/mods:mods/mods:typeOfResource', '/mods:mods/mods:genre', '/mods:mods/mods:originInfo/mods:dateIssued', '/mods:mods/mods:originInfo/mods:edition', '/mods:mods/mods:language/mods:languageTerm', '/mods:mods/mods:identifier[1]', '/mods:mods/mods:identifier[2]', '/mods:mods/mods:identifier[3]', '/mods:mods/mods:recordInfo/mods:recordContentSource', 'Number of pages', 'All files from METS present in package', 'All files in package present in METS', 'Each page has PDF, JPG, and Alto', 'Technical metadata for each JPG']
 
 with open('report.csv', 'w') as f:
@@ -388,16 +393,32 @@ with open('report.csv', 'w') as f:
 
 open('output.log', 'w')
 
+# openTime = datetime.now()
+# print('openTime ' + str(openTime - startTime))
+
+# open and read schema file
+xsdin = 'http://www.loc.gov/standards/mets/mets.xsd'
+with urlopen(xsdin) as schema_file:
+    schema_to_check = schema_file.read()
+    
+#parse schema and load into memory as xmlschema_doc
+xmlschema_doc = etree.fromstring(schema_to_check)
+xmlschema = etree.XMLSchema(xmlschema_doc)
+
 for xmlin in findMetsFiles(sys.argv[1]):
+    
+    # startLoopTime = datetime.now()
     
     errorArray = {}
     curatorReportArray = {}
     
-    validXmlArray = validateXML(xmlin)
+    validXmlArray = validateXML(xmlschema,xmlin)
     metsFileName = validXmlArray['mets']
     
     errorArray[metsFileName] = {}
     curatorReportArray[metsFileName] = {}
+    
+    # print(metsFileName)
 
     if validXmlArray['value-ok'] == False or validXmlArray['io-ok'] == False or validXmlArray['well-formed'] == False or  validXmlArray['valid'] == False:
         
@@ -414,6 +435,9 @@ for xmlin in findMetsFiles(sys.argv[1]):
         
         writeToCuratorReport('report.csv',curatorReportArray)
         
+        # invalidTime = datetime.now()
+        # print('invalidTime ' + str(invalidTime - startLoopTime))
+        
         continue
         
     curatorReportArray[metsFileName] = {
@@ -424,6 +448,10 @@ for xmlin in findMetsFiles(sys.argv[1]):
 
     curatorReportArray[metsFileName].update(descMdArray)
     
+    # descMdTime = datetime.now()
+    # print('descMdTime ' + str(descMdTime - startLoopTime))
+    
+    # THIS IS TAKING THE LONGEST
     pathStatusArray = buildPathStatusArray(xmlin)
     errorArray[metsFileName]['files in mets not in package'] = []
     
@@ -437,6 +465,9 @@ for xmlin in findMetsFiles(sys.argv[1]):
     else:
         curatorReportArray[metsFileName]['All files from METS present in package'] = 'No'
     
+    # pathStatusTime = datetime.now()
+    # print('pathStatusTime ' + str(pathStatusTime - descMdTime))
+    
     dirStatusArray = buildDirStatusArray(xmlin)
     errorArray[metsFileName]['files in package not in mets'] = []
     
@@ -449,7 +480,10 @@ for xmlin in findMetsFiles(sys.argv[1]):
         curatorReportArray[metsFileName]['All files in package present in METS'] = 'Yes'
     else:
         curatorReportArray[metsFileName]['All files in package present in METS'] = 'No'
-        
+    
+    # dirStatusTime = datetime.now()
+    # print('dirStatusTime ' + str(dirStatusTime - pathStatusTime))
+    
     pageArray, pageCounter = buildPageArray(xmlin)
     
     missingFilenameArray = buildMissingFilenameArray(xmlin)
@@ -470,7 +504,10 @@ for xmlin in findMetsFiles(sys.argv[1]):
         curatorReportArray[metsFileName]['Each page has PDF, JPG, and Alto'] = 'Yes'
     else:
         curatorReportArray[metsFileName]['Each page has PDF, JPG, and Alto'] = 'No'
-                
+    
+    # derivTime = datetime.now()
+    # print('derivTime ' + str(derivTime - dirStatusTime))
+    
     techMdStatusArray = validateTechMd(xmlin)
     errorArray[metsFileName]['missing technical metadata'] = {}
     
@@ -484,6 +521,9 @@ for xmlin in findMetsFiles(sys.argv[1]):
     else:
         curatorReportArray[metsFileName]['Technical metadata for each JPG'] = 'No'
     
+    # techTime = datetime.now()
+    # print('techTime ' + str(techTime - derivTime))
+    
     if errorArray[xmlin] != {}:
     
         with open('output.log', 'a') as f:
@@ -491,4 +531,4 @@ for xmlin in findMetsFiles(sys.argv[1]):
     
     writeToCuratorReport('report.csv',curatorReportArray)
     
-print(datetime.now() - startTime)
+# print('totalTime ' + str(datetime.now() - startTime))
