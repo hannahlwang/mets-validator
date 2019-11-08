@@ -10,14 +10,11 @@ github.com/hannahlwang/mets-validator
 """
 
 from lxml import etree
-from io import StringIO, BytesIO
 from urllib.request import urlopen
 import sys
 import os
 import json
 import csv
-import itertools
-from datetime import datetime
 
 # validate XML against METS XSD schema
 def validateXML(xmlschema, xmlin):
