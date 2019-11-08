@@ -5,34 +5,71 @@
 * [Python 3](https://www.python.org/download/releases/3.0/)
 * [lxml](https://lxml.de/installation.html)
 
-## Steps
+## Usage
 
-1. Validate XML against METS schema
-2. Verify that all files in fileSec are present at paths
-3. Verify that all files in package are present in METS fileSec
-4. Verify that each page (mets:div) in mets:structMap has a pdf, jpg, and alto file
-5. Verify that for each jpg file in the ImageJpgGroup, there is a mets:techMD section within mets:amdSec with an ID that corresponds to the ADMID for the jpg
-6. If any of these things are false, report in log:
-	* Validation errors
-	* Files in METS not present in package
-	* Files in package not present in METS
-	* Pages with missing derivatives (PDFs, JPGs, ALTO)
-	* JPGs without technical metadata 
-	
-## Final reporting output
+`python validate.py "[root directory path]"`
+
+Directory separator in `[root directory path]` can be either `/` or `\`. Double quotes must be used around `[root directory path]`.
+
+`report.csv` and `output.log` will be created in same location as `validate.py` script.
+
+## csv report output
 
 For each issue, include line in report.csv with the following fields:
 
 * METS filename
 * Valid METS (Yes/No)
-* Title
-* Date issued (YYYY-MM-DD)
-* Edition
-* Language
-* Catalogue Identifier
-* lccn
+* /mets:metsHdr/mets:agent[1]/mets:name
+* /mets:metsHdr/mets:agent[2]/mets:name
+* /mets:metsHdr/mets:agent[3]/mets:name
+* /mods:mods/mods:titleInfo/mods:title
+* /mods:mods/mods:typeOfResource
+* /mods:mods/mods:genre
+* /mods:mods/mods:originInfo/mods:dateIssued
+* /mods:mods/mods:originInfo/mods:edition
+* /mods:mods/mods:language/mods:languageTerm
+* /mods:mods/mods:identifier[1]
+* /mods:mods/mods:identifier[2]
+* /mods:mods/mods:identifier[3]
+* /mods:mods/mods:recordInfo/mods:recordContentSource
 * Number of pages
 * All files from METS present in package (Yes/No)
 * All files in package present in METS (Yes/No)
 * Each page has PDF, JPG, and Alto	(Yes/No)
 * Technical metadata for each JPG (Yes/No)
+
+## log ouput
+
+Output is only created if errors are raised. For each xml file that raises an error, log output may include: 
+
+```
+{
+    mets-filename.xml: {
+        "validation errors": {
+            "mets": "mets-filename.xml",
+            "value-ok": "",
+            "value-error": "",
+            "io-ok": "",
+            "io-error": "",
+            "well-formed": "",
+            "syntax-error": "",
+            "valid": "",
+            "validation-error": "",
+        },
+        "files in mets not in package": [
+            filename-array
+        ],
+        
+        "files in package not in mets": [
+            filename-array
+        ],
+        "missing derivatives in structMap": {
+            pageID: [
+                fileID: filename
+            ]
+        },
+        "missing technical metadata": {
+            fileID: filename
+        }
+    }
+```
