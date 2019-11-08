@@ -1,3 +1,14 @@
+"""
+mets-validator
+---
+
+A Python validation tool for METS packages.
+
+For information on usage and dependencies, see:
+github.com/hannahlwang/mets-validator
+
+"""
+
 from lxml import etree
 from io import StringIO, BytesIO
 from urllib.request import urlopen
