@@ -1,11 +1,14 @@
 from lxml import etree
-from io import StringIO
+from io import StringIO, BytesIO
 from urllib.request import urlopen
 import sys
 import os
 import json
 import csv
 import itertools
+from datetime import datetime
+
+startTime = datetime.now()
 
 # validate XML against METS XSD schema
 def validateXML(xmlin):
@@ -35,7 +38,11 @@ def validateXML(xmlin):
 	# parse xml
 	
 	try:
-		doc = etree.parse(StringIO(xml_to_check))
+		# tree = etree.parse(StringIO(xml_to_check))
+		# print(tree)
+		utf8_parser = etree.XMLParser(encoding='utf-8')
+		doc = etree.fromstring(xml_to_check.encode('utf-8'), parser=utf8_parser)
+		# print(doc)
 		validXmlArray['value-ok'] = True
 		validXmlArray['io-ok'] = True
 		validXmlArray['well-formed'] = True
@@ -79,8 +86,10 @@ def parseMETS(xmlin):
 		xml_to_check = xml_file.read()
 	
 	# parse xml and get root
-	tree = etree.parse(StringIO(xml_to_check))
-	root = tree.getroot()
+	utf8_parser = etree.XMLParser(encoding='utf-8')
+	root = etree.fromstring(xml_to_check.encode('utf-8'), parser=utf8_parser)
+	# tree = etree.parse(StringIO(xml_to_check))
+	# root = tree.getroot()
 	
 	# define XML namespaces
 	ns = {
@@ -89,13 +98,13 @@ def parseMETS(xmlin):
 	'mods': 'http://www.loc.gov/mods/v3'
 	}
 	
-	return tree, root, ns
+	return root, ns
 
 # build list of file paths based on fileSec paths in METS
 def buildFilePathList(xmlin):
 	
 	# open and parse METS xml, define XML namespaces
-	tree, root, ns = parseMETS(xmlin)
+	root, ns = parseMETS(xmlin)
 	
 	# create list of file paths in the file section which will be used as input for validation
 	filePathArray = {}
@@ -149,12 +158,12 @@ def buildDirStatusArray(xmlin):
 			dirStatusArray[filePath] = False
 	
 	return dirStatusArray
-	
+
+# create array for storing page IDs and fileIDs for each pdf, jpg, and alto file in scructMap - this will be used to verify whether each file has all 3 derivatives. Also count number of pages in structMap, to be included in final report.
 def buildPageArray(xmlin):
 	# open and parse METS xml, define XML namespaces
-	tree, root, ns = parseMETS(xmlin)
+	root, ns = parseMETS(xmlin)
 	
-	# create array for storing page IDs and fileIDs for each pdf, jpg, and alto file in scructMap - this will be used to verify whether each file has all 3 derivatives
 	pageArray = {}
 	
 	pageCounter = 0
@@ -184,7 +193,8 @@ def buildPageArray(xmlin):
 				pageArray[pageID]['alto']['filename'] = filePathArray.get(fileID)
 	
 	return pageArray, pageCounter
-	
+
+# create a list of filenames for missing files in structMap. 
 def buildMissingFilenameArray(xmlin):
 	
 	pageArray, pageCounter = buildPageArray(xmlin)
@@ -275,18 +285,23 @@ def buildMissingFilenameArray(xmlin):
 		
 	return missingFilenameArray
 
+# create array of JPG files in fileSec and whether or not they have technical metadata in the amdSec
 def validateTechMd(xmlin):
 	
 	# open and parse METS xml, define XML namespaces
-	tree, root, ns = parseMETS(xmlin)
+	root, ns = parseMETS(xmlin)
+	
+	filePathArray = buildFilePathList(xmlin)
 	
 	techMdStatusArray = {}
 	
 	for jpgFile in root.findall('./mets:fileSec/mets:fileGrp[@ID="ImageJpgGroup"]/mets:fileGrp[@ID="JPGFiles"]/mets:file', ns):
 		fileID = jpgFile.attrib['ID']
 		admID = jpgFile.attrib['ADMID']
+		jpgFilename = filePathArray[fileID]
 		techMdStatusArray[fileID] = {}
 		techMdStatusArray[fileID]['ADMID'] = admID
+		techMdStatusArray[fileID]['JPG filename'] = jpgFilename
 	
 	techMdArray = []
 	for techMdEntry in root.findall('./mets:amdSec[@ID="TECH_MD"]/mets:techMD', ns):
@@ -301,10 +316,11 @@ def validateTechMd(xmlin):
 		
 	return techMdStatusArray
 
+# create an array of descriptive metadata fields in mets:metsHdr and mets:dmdSec section
 def logDescMd(xmlin):
 
 	# open and parse METS xml, define XML namespaces
-	tree, root, ns = parseMETS(xmlin)
+	root, ns = parseMETS(xmlin)
 	
 	descMdArray = {}
 	
@@ -323,14 +339,14 @@ def logDescMd(xmlin):
 			descMdArray[mtree.getpath(elem)] = elem.text
 		
 	return descMdArray
-
-def createCuratorReport(reportname):
-
-	fields = ['METS filename','Valid METS','/mets:metsHdr/mets:agent[1]/mets:name', '/mets:metsHdr/mets:agent[2]/mets:name', '/mets:metsHdr/mets:agent[3]/mets:name', '/mods:mods/mods:titleInfo/mods:title', '/mods:mods/mods:typeOfResource', '/mods:mods/mods:genre', '/mods:mods/mods:originInfo/mods:dateIssued', '/mods:mods/mods:originInfo/mods:edition', '/mods:mods/mods:language/mods:languageTerm', '/mods:mods/mods:identifier[1]', '/mods:mods/mods:identifier[2]', '/mods:mods/mods:identifier[3]', '/mods:mods/mods:recordInfo/mods:recordContentSource', 'Number of pages', 'All files from METS present in package', 'All files in package present in METS', 'Each page has PDF, JPG, and Alto', 'Technical metadata for each JPG']
 	
-	with open(reportname, 'w') as f:
-		w = csv.DictWriter(f, fieldnames=fields, lineterminator='\n')
-		w.writeheader()
+# def createCuratorReport(reportname):
+
+	# fields = ['METS filename','Valid METS','/mets:metsHdr/mets:agent[1]/mets:name', '/mets:metsHdr/mets:agent[2]/mets:name', '/mets:metsHdr/mets:agent[3]/mets:name', '/mods:mods/mods:titleInfo/mods:title', '/mods:mods/mods:typeOfResource', '/mods:mods/mods:genre', '/mods:mods/mods:originInfo/mods:dateIssued', '/mods:mods/mods:originInfo/mods:edition', '/mods:mods/mods:language/mods:languageTerm', '/mods:mods/mods:identifier[1]', '/mods:mods/mods:identifier[2]', '/mods:mods/mods:identifier[3]', '/mods:mods/mods:recordInfo/mods:recordContentSource', 'Number of pages', 'All files from METS present in package', 'All files in package present in METS', 'Each page has PDF, JPG, and Alto', 'Technical metadata for each JPG']
+	
+	# with open(reportname, 'w') as f:
+		# w = csv.DictWriter(f, fieldnames=fields, lineterminator='\n')
+		# w.writeheader()
 			
 def writeToCuratorReport(reportname,reportarray):
 	fields = ['METS filename','Valid METS','/mets:metsHdr/mets:agent[1]/mets:name', '/mets:metsHdr/mets:agent[2]/mets:name', '/mets:metsHdr/mets:agent[3]/mets:name', '/mods:mods/mods:titleInfo/mods:title', '/mods:mods/mods:typeOfResource', '/mods:mods/mods:genre', '/mods:mods/mods:originInfo/mods:dateIssued', '/mods:mods/mods:originInfo/mods:edition', '/mods:mods/mods:language/mods:languageTerm', '/mods:mods/mods:identifier[1]', '/mods:mods/mods:identifier[2]', '/mods:mods/mods:identifier[3]', '/mods:mods/mods:recordInfo/mods:recordContentSource', 'Number of pages', 'All files from METS present in package', 'All files in package present in METS', 'Each page has PDF, JPG, and Alto', 'Technical metadata for each JPG']
@@ -353,7 +369,11 @@ def findMetsFiles(rootfolder):
 	
 	return metsFileList
 
-createCuratorReport('report.csv')
+fields = ['METS filename','Valid METS','/mets:metsHdr/mets:agent[1]/mets:name', '/mets:metsHdr/mets:agent[2]/mets:name', '/mets:metsHdr/mets:agent[3]/mets:name', '/mods:mods/mods:titleInfo/mods:title', '/mods:mods/mods:typeOfResource', '/mods:mods/mods:genre', '/mods:mods/mods:originInfo/mods:dateIssued', '/mods:mods/mods:originInfo/mods:edition', '/mods:mods/mods:language/mods:languageTerm', '/mods:mods/mods:identifier[1]', '/mods:mods/mods:identifier[2]', '/mods:mods/mods:identifier[3]', '/mods:mods/mods:recordInfo/mods:recordContentSource', 'Number of pages', 'All files from METS present in package', 'All files in package present in METS', 'Each page has PDF, JPG, and Alto', 'Technical metadata for each JPG']
+
+with open('report.csv', 'w') as f:
+	w = csv.DictWriter(f, fieldnames=fields, lineterminator='\n')
+	w.writeheader()
 
 open('test.log', 'w')
 
@@ -441,13 +461,13 @@ for xmlin in findMetsFiles(sys.argv[1]):
 		curatorReportArray[metsFileName]['Each page has PDF, JPG, and Alto'] = 'No'
 				
 	techMdStatusArray = validateTechMd(xmlin)
-	errorArray[metsFileName]['missing technical metadata'] = []
+	errorArray[metsFileName]['missing technical metadata'] = {}
 	
 	for jpgFile in techMdStatusArray:
 		if techMdStatusArray[jpgFile]['techMD'] == False:
-			errorArray[metsFileName]['missing technical metadata'].append(jpgFile)
+			errorArray[metsFileName]['missing technical metadata'][jpgFile] = techMdStatusArray[jpgFile]['JPG filename']
 			
-	if errorArray[metsFileName]['missing technical metadata'] == []:
+	if errorArray[metsFileName]['missing technical metadata'] == {}:
 		errorArray[metsFileName].pop('missing technical metadata')
 		curatorReportArray[metsFileName]['Technical metadata for each JPG'] = 'Yes'
 	else:
@@ -460,4 +480,4 @@ for xmlin in findMetsFiles(sys.argv[1]):
 	
 	writeToCuratorReport('report.csv',curatorReportArray)
 	
-
+print(datetime.now() - startTime)
