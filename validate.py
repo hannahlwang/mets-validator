@@ -338,14 +338,6 @@ def logDescMd(xmlin):
             descMdArray[mtree.getpath(elem)] = elem.text
         
     return descMdArray
-    
-# def createCuratorReport(reportname):
-
-    # fields = ['METS filename','Valid METS','/mets:metsHdr/mets:agent[1]/mets:name', '/mets:metsHdr/mets:agent[2]/mets:name', '/mets:metsHdr/mets:agent[3]/mets:name', '/mods:mods/mods:titleInfo/mods:title', '/mods:mods/mods:typeOfResource', '/mods:mods/mods:genre', '/mods:mods/mods:originInfo/mods:dateIssued', '/mods:mods/mods:originInfo/mods:edition', '/mods:mods/mods:language/mods:languageTerm', '/mods:mods/mods:identifier[1]', '/mods:mods/mods:identifier[2]', '/mods:mods/mods:identifier[3]', '/mods:mods/mods:recordInfo/mods:recordContentSource', 'Number of pages', 'All files from METS present in package', 'All files in package present in METS', 'Each page has PDF, JPG, and Alto', 'Technical metadata for each JPG']
-    
-    # with open(reportname, 'w') as f:
-        # w = csv.DictWriter(f, fieldnames=fields, lineterminator='\n')
-        # w.writeheader()
             
 def writeToCuratorReport(reportname,reportarray):
     fields = ['METS filename','Valid METS','/mets:metsHdr/mets:agent[1]/mets:name', '/mets:metsHdr/mets:agent[2]/mets:name', '/mets:metsHdr/mets:agent[3]/mets:name', '/mods:mods/mods:titleInfo/mods:title', '/mods:mods/mods:typeOfResource', '/mods:mods/mods:genre', '/mods:mods/mods:originInfo/mods:dateIssued', '/mods:mods/mods:originInfo/mods:edition', '/mods:mods/mods:language/mods:languageTerm', '/mods:mods/mods:identifier[1]', '/mods:mods/mods:identifier[2]', '/mods:mods/mods:identifier[3]', '/mods:mods/mods:recordInfo/mods:recordContentSource', 'Number of pages', 'All files from METS present in package', 'All files in package present in METS', 'Each page has PDF, JPG, and Alto', 'Technical metadata for each JPG']
@@ -368,15 +360,18 @@ def findMetsFiles(rootfolder):
     
     return metsFileList
 
-# startTime = datetime.now()
+
+    
+curatorReport = os.path.join(sys.argv[1],'report.csv')
+outputLog = os.path.join(sys.argv[1], 'output.log')
 
 fields = ['METS filename','Valid METS','/mets:metsHdr/mets:agent[1]/mets:name', '/mets:metsHdr/mets:agent[2]/mets:name', '/mets:metsHdr/mets:agent[3]/mets:name', '/mods:mods/mods:titleInfo/mods:title', '/mods:mods/mods:typeOfResource', '/mods:mods/mods:genre', '/mods:mods/mods:originInfo/mods:dateIssued', '/mods:mods/mods:originInfo/mods:edition', '/mods:mods/mods:language/mods:languageTerm', '/mods:mods/mods:identifier[1]', '/mods:mods/mods:identifier[2]', '/mods:mods/mods:identifier[3]', '/mods:mods/mods:recordInfo/mods:recordContentSource', 'Number of pages', 'All files from METS present in package', 'All files in package present in METS', 'Each page has PDF, JPG, and Alto', 'Technical metadata for each JPG']
 
-with open('report.csv', 'w') as f:
+with open(curatorReport, 'w') as f:
     w = csv.DictWriter(f, fieldnames=fields, lineterminator='\n')
     w.writeheader()
 
-open('output.log', 'w')
+open(outputLog, 'w')
 
 # open and read schema file
 xsdin = 'http://www.loc.gov/standards/mets/mets.xsd'
@@ -387,6 +382,7 @@ with urlopen(xsdin) as schema_file:
 xmlschema_doc = etree.fromstring(schema_to_check)
 xmlschema = etree.XMLSchema(xmlschema_doc)
 
+# for each mets file found on disk, execute all functions and output to report.csv and output.log
 for xmlin in findMetsFiles(sys.argv[1]):
     
     
@@ -405,14 +401,14 @@ for xmlin in findMetsFiles(sys.argv[1]):
             'validation errors' : validXmlArray
         }
         
-        with open('output.log', 'a') as f:
+        with open(outputLog, 'a') as f:
             f.write(json.dumps(errorArray, indent=4))
             
         curatorReportArray[metsFileName] = {
             'Valid METS' : 'No'
         }
         
-        writeToCuratorReport('report.csv',curatorReportArray)
+        writeToCuratorReport(curatorReport,curatorReportArray)
         
         continue
         
@@ -486,7 +482,7 @@ for xmlin in findMetsFiles(sys.argv[1]):
     
     if errorArray[xmlin] != {}:
     
-        with open('output.log', 'a') as f:
+        with open(outputLog, 'a') as f:
             f.write(json.dumps(errorArray, indent=4))
     
-    writeToCuratorReport('report.csv',curatorReportArray)
+    writeToCuratorReport(curatorReport,curatorReportArray)

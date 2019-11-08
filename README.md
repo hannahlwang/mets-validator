@@ -11,7 +11,7 @@
 
 Directory separator in `[root directory path]` can be either `/` or `\`. Double quotes must be used around `[root directory path]`.
 
-`report.csv` and `output.log` will be created in same location as `validate.py` script.
+`report.csv` and `output.log` will be created at the `[root directory path]`.
 
 ## csv report output
 
