@@ -74,3 +74,12 @@ Output is only created if errors are raised. For each xml file that raises an er
     }
 }
 ```
+
+## performance testing
+
+Requires: snakeviz (`pip install snakeviz`)
+
+```
+python -m cProfile -o out.dat validate.py "[root directory path]"
+snakeviz out.dat
+```
