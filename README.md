@@ -64,9 +64,9 @@ Output is only created if errors are raised. For each xml file that raises an er
             filename-array
         ],
         "missing derivatives in structMap": {
-            pageID: [
+            pageID: {
                 fileID: filename
-            ]
+            }
         },
         "missing technical metadata": {
             fileID: filename

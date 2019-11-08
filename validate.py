@@ -375,7 +375,7 @@ with open('report.csv', 'w') as f:
 	w = csv.DictWriter(f, fieldnames=fields, lineterminator='\n')
 	w.writeheader()
 
-open('test.log', 'w')
+open('output.log', 'w')
 
 for xmlin in findMetsFiles(sys.argv[1]):
 	
@@ -394,7 +394,7 @@ for xmlin in findMetsFiles(sys.argv[1]):
 			'validation errors' : validXmlArray
 		}
 		
-		with open('test.log', 'a') as f:
+		with open('output.log', 'a') as f:
 			f.write(json.dumps(errorArray, indent=4))
 			
 		curatorReportArray[metsFileName] = {
@@ -447,11 +447,11 @@ for xmlin in findMetsFiles(sys.argv[1]):
 	errorArray[metsFileName]['missing derivatives in structMap'] = {}
 	
 	for page in missingFilenameArray:
-		errorArray[metsFileName]['missing derivatives in structMap'][page] = []
+		errorArray[metsFileName]['missing derivatives in structMap'][page] = {}
 		if missingFilenameArray[page] != {}:
-			errorArray[metsFileName]['missing derivatives in structMap'][page].append(missingFilenameArray[page])
+			errorArray[metsFileName]['missing derivatives in structMap'][page]= missingFilenameArray[page]
 		
-		if errorArray[metsFileName]['missing derivatives in structMap'][page] == []:
+		if errorArray[metsFileName]['missing derivatives in structMap'][page] == {}:
 			errorArray[metsFileName]['missing derivatives in structMap'].pop(page)
 			
 	if errorArray[metsFileName]['missing derivatives in structMap'] == {}:
@@ -475,7 +475,7 @@ for xmlin in findMetsFiles(sys.argv[1]):
 	
 	if errorArray[xmlin] != {}:
 	
-		with open('test.log', 'a') as f:
+		with open('output.log', 'a') as f:
 			f.write(json.dumps(errorArray, indent=4))
 	
 	writeToCuratorReport('report.csv',curatorReportArray)
