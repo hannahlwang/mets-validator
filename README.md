@@ -11,7 +11,19 @@
 
 Directory separator in `[root directory path]` can be either `/` or `\`. Double quotes must be used around `[root directory path]`.
 
-`report.csv` and `output.log` will be created at the `[root directory path]`.
+`[datetime]_report.csv` and `[datetime]_output.log` will be created at the `[root directory path]`.
+
+This validator assumes that each METS package has the following structure:
+
+```
+[name_date]/
+    alto/
+    images/
+        pdf/
+        jpg/
+    [name_date]_mets.xml
+    
+```
 
 ## csv report output
 
@@ -32,7 +44,7 @@ For each issue, include line in report.csv with the following fields:
 * /mods:mods/mods:identifier[2]
 * /mods:mods/mods:identifier[3]
 * /mods:mods/mods:recordInfo/mods:recordContentSource
-* Number of pages
+* Number of pages (based on the number of pages in the structMap section of the METS file)
 * All files from METS present in package (Yes/No)
 * All files in package present in METS (Yes/No)
 * Each page has PDF, JPG, and Alto	(Yes/No)
