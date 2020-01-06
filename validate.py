@@ -20,11 +20,11 @@ import csv
 import datetime
 
 # validate XML against METS XSD schema
-def validateXML(xmlschema, metsFile):
+def validateXML(xmlschema, xmlin):
 
     # create report array
     validXmlArray = {
-    'mets':metsFile,
+    'mets':xmlin,
     'value-ok':'',
     'io-ok':'',
     'well-formed':'',
@@ -32,7 +32,7 @@ def validateXML(xmlschema, metsFile):
     }
         
     # open and read xml file
-    with open(metsFile, 'r') as xml_file:
+    with open(xmlin, 'r') as xml_file:
         xml_to_check = xml_file.read()
 
     # parse xml
@@ -76,9 +76,9 @@ def validateXML(xmlschema, metsFile):
     return validXmlArray
     
 # open and parse METS xml, define XML namespaces
-def parseMETS(metsFile):
+def parseMETS(xmlin):
     # open and read xml file
-    with open(metsFile, 'r') as xml_file:
+    with open(xmlin, 'r') as xml_file:
         xml_to_check = xml_file.read()
     
     # parse xml and get root
@@ -94,74 +94,101 @@ def parseMETS(metsFile):
     
     return root, ns
 
+# find the METS files in the rootfolder
+def findMetsFiles(rootfolder):
+
+    metsFileList = []
+
+    for root, dirs, files in os.walk(rootfolder):
+        for name in files:
+            if '_mets.xml' in name:
+                metsFileList.append(os.path.join(root,name).replace('\\','/'))
+
+    return metsFileList
+
 # build list of file paths based on fileSec paths in METS
-def buildFilePathList(metsFile):
+def buildFilePathList(xmlin):
     
     # open and parse METS xml, define XML namespaces
-    root, ns = parseMETS(metsFile)
+    root, ns = parseMETS(xmlin)
     
     # create list of file paths in the file section which will be used as input for validation
     filePathArray = {}
     
     # locate all the mets:FLocat tags and add the href attributes to the file path list
-    for file in root.findall('./mets:fileSec/mets:fileGrp/mets:fileGrp/mets:file', ns):
-        fileId = file.attrib['ID']
-        filePath = file.find('./mets:FLocat',ns).attrib['{http://www.w3.org/1999/xlink}href']
+    for metsFile in root.findall('./mets:fileSec/mets:fileGrp/mets:fileGrp/mets:file', ns):
+        fileId = metsFile.attrib['ID']
+        filePath = metsFile.find('./mets:FLocat',ns).attrib['{http://www.w3.org/1999/xlink}href']
         filePathArray[fileId] = filePath
     
     return filePathArray
 
 # build list of actual file paths in the package
-def buildDirList(metsFile):
+def buildDirList(xmlin):
     
-    rootDir = os.path.dirname(metsFile)
+    rootDir = os.path.dirname(xmlin)
 
     dirList = []
 
     for root, dirs, files in os.walk(rootDir):
         for name in files:
             dirList.append(os.path.join(root,name).replace('\\','/').replace(rootDir,'.'))
+            
+    # if file package list includes METS files, remove the METS files from the list
     
-    pathList = [path for path in dirList if '_mets.xml' not in path]
+    metsFileList = findMetsFiles(rootDir)
     
-    metsFileList = [path for path in dirList if '_mets.xml' in path]
+    metsFileList = [path.replace(rootDir,'.') for path in metsFileList]
     
-    return pathList, metsFileList
+    for path in metsFileList:
+        if path in dirList:
+            dirList.remove(path)
 
-    
-def statusArrays(metsFile):
+    return dirList
 
-    filePathArray = buildFilePathList(metsFile)
+# check whether file paths in METS (in filePathArray) exist in package or not, build array of paths and statuses (boolean)
+def buildPathStatusArray(xmlin):
     
-    pathList, metsFileList = buildDirList(metsFile)
+    filePathArray = buildFilePathList(xmlin)
+    
+    dirList = buildDirList(xmlin)
     
     # compare each file in pathlist against the contents of the system
     pathStatusArray = {}
     
     for filePath in filePathArray.values():
-        pathStatusArray[filePath] = filePath in pathList
+        pathStatusArray[filePath] = filePath in dirList
+    
+    return pathStatusArray
+
+# check whether file paths in package exist in METS or not, build array of paths and statuses (boolean)
+def buildDirStatusArray(xmlin):
+    
+    filePathArray = buildFilePathList(xmlin)
+    
+    dirList = buildDirList(xmlin)
     
     # compare each file in system list against the METS pathlist
     dirStatusArray = {}
     
-    for filePath in pathList:
+    for filePath in dirList:
         if filePath in filePathArray.values():
             dirStatusArray[filePath] = True
         else:
             dirStatusArray[filePath] = False
     
-    return pathStatusArray, dirStatusArray
+    return dirStatusArray
 
 # create array for storing page IDs and fileIDs for each pdf, jpg, and alto file in scructMap - this will be used to verify whether each file has all 3 derivatives. Also count number of pages in structMap, to be included in final report.
-def buildPageArray(metsFile):
+def buildPageArray(xmlin):
     # open and parse METS xml, define XML namespaces
-    root, ns = parseMETS(metsFile)
+    root, ns = parseMETS(xmlin)
     
     pageArray = {}
     
     pageCounter = 0
     
-    filePathArray = buildFilePathList(metsFile)
+    filePathArray = buildFilePathList(xmlin)
     
     # locate all the page tags in the structMap and create array with pdf, jpg, and alto files
     for physPage in root.findall('./mets:structMap/mets:div/mets:div', ns):
@@ -188,9 +215,9 @@ def buildPageArray(metsFile):
     return pageArray, pageCounter
 
 # create a list of filenames for missing files in structMap. 
-def buildMissingFilenameArray(metsFile):
+def buildMissingFilenameArray(xmlin):
     
-    pageArray, pageCounter = buildPageArray(metsFile)
+    pageArray, pageCounter = buildPageArray(xmlin)
     
     missingFilenameArray = {}
     
@@ -279,12 +306,12 @@ def buildMissingFilenameArray(metsFile):
     return missingFilenameArray
 
 # create array of JPG files in fileSec and whether or not they have technical metadata in the amdSec
-def validateTechMd(metsFile):
+def validateTechMd(xmlin):
     
     # open and parse METS xml, define XML namespaces
-    root, ns = parseMETS(metsFile)
+    root, ns = parseMETS(xmlin)
     
-    filePathArray = buildFilePathList(metsFile)
+    filePathArray = buildFilePathList(xmlin)
     
     techMdStatusArray = {}
     
@@ -310,10 +337,10 @@ def validateTechMd(metsFile):
     return techMdStatusArray
 
 # create an array of descriptive metadata fields in mets:metsHdr and mets:dmdSec section
-def logDescMd(metsFile):
+def logDescMd(xmlin):
 
     # open and parse METS xml, define XML namespaces
-    root, ns = parseMETS(metsFile)
+    root, ns = parseMETS(xmlin)
     
     descMdArray = {}
     
@@ -371,17 +398,14 @@ with urlopen(xsdin) as schema_file:
 xmlschema_doc = etree.fromstring(schema_to_check)
 xmlschema = etree.XMLSchema(xmlschema_doc)
 
-pathList, metsFileList = buildDirList(sys.argv[1])
-
-
 # for each mets file found on disk, execute all functions and output to [datetime]_report.csv and [datetime]_output.log
-# for pathList, metsFileList in buildDirList(sys.argv[1]):
-for metsFile in metsFileList:   
+for xmlin in findMetsFiles(sys.argv[1]):
+    
     
     errorArray = {}
     curatorReportArray = {}
     
-    validXmlArray = validateXML(xmlschema,metsFile)
+    validXmlArray = validateXML(xmlschema,xmlin)
     metsFileName = validXmlArray['mets']
     
     errorArray[metsFileName] = {}
@@ -408,11 +432,11 @@ for metsFile in metsFileList:
         'Valid METS' : 'Yes'
     }
     
-    descMdArray = logDescMd(metsFile)
+    descMdArray = logDescMd(xmlin)
 
     curatorReportArray[metsFileName].update(descMdArray)
 
-    pathStatusArray, dirStatusArray = statusArrays(metsFile)
+    pathStatusArray = buildPathStatusArray(xmlin)
     errorArray[metsFileName]['files in mets not in package'] = []
     
     for path in pathStatusArray:
@@ -425,7 +449,7 @@ for metsFile in metsFileList:
     else:
         curatorReportArray[metsFileName]['All files from METS present in package'] = 'No'
     
-    # dirStatusArray = buildDirStatusArray(metsFile)
+    dirStatusArray = buildDirStatusArray(xmlin)
     errorArray[metsFileName]['files in package not in mets'] = []
     
     for path in dirStatusArray:
@@ -438,9 +462,9 @@ for metsFile in metsFileList:
     else:
         curatorReportArray[metsFileName]['All files in package present in METS'] = 'No'
     
-    pageArray, pageCounter = buildPageArray(metsFile)
+    pageArray, pageCounter = buildPageArray(xmlin)
     
-    missingFilenameArray = buildMissingFilenameArray(metsFile)
+    missingFilenameArray = buildMissingFilenameArray(xmlin)
     
     curatorReportArray[metsFileName]['Number of pages'] = pageCounter
     errorArray[metsFileName]['missing derivatives in structMap'] = {}
@@ -459,7 +483,7 @@ for metsFile in metsFileList:
     else:
         curatorReportArray[metsFileName]['Each page has PDF, JPG, and Alto'] = 'No'
     
-    techMdStatusArray = validateTechMd(metsFile)
+    techMdStatusArray = validateTechMd(xmlin)
     errorArray[metsFileName]['missing technical metadata'] = {}
     
     for jpgFile in techMdStatusArray:
@@ -472,7 +496,7 @@ for metsFile in metsFileList:
     else:
         curatorReportArray[metsFileName]['Technical metadata for each JPG'] = 'No'
     
-    if errorArray[metsFile] != {}:
+    if errorArray[xmlin] != {}:
     
         with open(outputLog, 'a') as f:
             f.write(json.dumps(errorArray, indent=4))
