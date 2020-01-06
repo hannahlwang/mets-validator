@@ -17,6 +17,7 @@ import sys
 import os
 import json
 import csv
+import datetime
 
 # validate XML against METS XSD schema
 def validateXML(xmlschema, xmlin):
@@ -93,6 +94,18 @@ def parseMETS(xmlin):
     
     return root, ns
 
+# find the METS files in the rootfolder
+def findMetsFiles(rootfolder):
+
+    metsFileList = []
+
+    for root, dirs, files in os.walk(rootfolder):
+        for name in files:
+            if '_mets.xml' in name:
+                metsFileList.append(os.path.join(root,name).replace('\\','/'))
+
+    return metsFileList
+
 # build list of file paths based on fileSec paths in METS
 def buildFilePathList(xmlin):
     
@@ -109,18 +122,36 @@ def buildFilePathList(xmlin):
         filePathArray[fileId] = filePath
     
     return filePathArray
-    
+
+# build list of actual file paths in the package
 def buildDirList(xmlin):
     
     rootDir = os.path.dirname(xmlin)
-    
+    # print(rootDir)
     dirList = []
 
     for root, dirs, files in os.walk(rootDir):
         for name in files:
             dirList.append(os.path.join(root,name).replace('\\','/').replace(rootDir,'.'))
     
+    # metsFileList = findMetsFiles(rootDir)
+
+    # for path in metsFileList:
+        # path.replace(rootDir,'.')
+    
+    # print(metsFileList)
+    
+
+    
+    # for path in dirList:
+        # print(path.replace('/','\\').replace('.',rootDir))
+        # if path.replace('/','\\').replace('.',rootDir) in metsFileList:
+            # print(path)
+            # dirList.remove(path)
+            
     dirList.remove(xmlin.replace('\\','/').replace(rootDir,'.'))
+    
+    # print(dirList)
     
     return dirList
 
@@ -354,21 +385,10 @@ def writeToCuratorReport(reportname,reportarray):
             row.update(val)
             w.writerow(row)
 
-def findMetsFiles(rootfolder):
-
-    metsFileList = []
+currentTime = datetime.datetime.now().strftime('%Y%m%dT%H%M%S')
     
-    for root, dirs, files in os.walk(rootfolder):
-        for name in files:
-            if '_mets.xml' in name:
-                metsFileList.append(os.path.join(root,name).replace('\\','/'))
-    
-    return metsFileList
-
-
-    
-curatorReport = os.path.join(sys.argv[1],'report.csv')
-outputLog = os.path.join(sys.argv[1], 'output.log')
+curatorReport = os.path.join(sys.argv[1],currentTime+'_report.csv')
+outputLog = os.path.join(sys.argv[1], currentTime+'_output.log')
 
 fields = ['METS filename','Valid METS','/mets:metsHdr/mets:agent[1]/mets:name', '/mets:metsHdr/mets:agent[2]/mets:name', '/mets:metsHdr/mets:agent[3]/mets:name', '/mods:mods/mods:titleInfo/mods:title', '/mods:mods/mods:typeOfResource', '/mods:mods/mods:genre', '/mods:mods/mods:originInfo/mods:dateIssued', '/mods:mods/mods:originInfo/mods:edition', '/mods:mods/mods:language/mods:languageTerm', '/mods:mods/mods:identifier[1]', '/mods:mods/mods:identifier[2]', '/mods:mods/mods:identifier[3]', '/mods:mods/mods:recordInfo/mods:recordContentSource', 'Number of pages', 'All files from METS present in package', 'All files in package present in METS', 'Each page has PDF, JPG, and Alto', 'Technical metadata for each JPG']
 
