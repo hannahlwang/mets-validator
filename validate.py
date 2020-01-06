@@ -127,32 +127,23 @@ def buildFilePathList(xmlin):
 def buildDirList(xmlin):
     
     rootDir = os.path.dirname(xmlin)
-    # print(rootDir)
+
     dirList = []
 
     for root, dirs, files in os.walk(rootDir):
         for name in files:
             dirList.append(os.path.join(root,name).replace('\\','/').replace(rootDir,'.'))
-    
-    # metsFileList = findMetsFiles(rootDir)
-
-    # for path in metsFileList:
-        # path.replace(rootDir,'.')
-    
-    # print(metsFileList)
-    
-
-    
-    # for path in dirList:
-        # print(path.replace('/','\\').replace('.',rootDir))
-        # if path.replace('/','\\').replace('.',rootDir) in metsFileList:
-            # print(path)
-            # dirList.remove(path)
             
-    dirList.remove(xmlin.replace('\\','/').replace(rootDir,'.'))
+    # if file package list includes METS files, remove the METS files from the list
     
-    # print(dirList)
+    metsFileList = findMetsFiles(rootDir)
     
+    metsFileList = [path.replace(rootDir,'.') for path in metsFileList]
+    
+    for path in metsFileList:
+        if path in dirList:
+            dirList.remove(path)
+
     return dirList
 
 # check whether file paths in METS (in filePathArray) exist in package or not, build array of paths and statuses (boolean)
@@ -407,7 +398,7 @@ with urlopen(xsdin) as schema_file:
 xmlschema_doc = etree.fromstring(schema_to_check)
 xmlschema = etree.XMLSchema(xmlschema_doc)
 
-# for each mets file found on disk, execute all functions and output to report.csv and output.log
+# for each mets file found on disk, execute all functions and output to [datetime]_report.csv and [datetime]_output.log
 for xmlin in findMetsFiles(sys.argv[1]):
     
     
