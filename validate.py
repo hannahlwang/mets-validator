@@ -111,10 +111,10 @@ def buildFilePathList(metsFile):
     
     return filePathArray
 
-# build list of actual file paths in the package
-def buildDirList(metsFile):
+# build list of actual file paths in the package (not including METS files) and a separate list of any METS files
+def getMetsFiles(metsPackage):
     
-    rootDir = os.path.dirname(metsFile)
+    rootDir = os.path.dirname(metsPackage)
 
     dirList = []
 
@@ -122,13 +122,21 @@ def buildDirList(metsFile):
         for name in files:
             dirList.append(os.path.join(root,name).replace('\\','/').replace(rootDir,'.'))
     
-    pathList = [path for path in dirList if '_mets.xml' not in path]
-    
     metsFileList = [path for path in dirList if '_mets.xml' in path]
-    
-    return pathList, metsFileList
 
     
+    
+    
+    return dirList, metsFileList
+
+def dirPathList(metsFile):
+    
+    dirList, metsFileList = getMetsFiles(metsPackage)
+    
+    
+    pathList = [path for path in dirList if '_mets.xml' not in path]
+
+# build arrays that give boolean status of files in package vs files in METS pathlist
 def statusArrays(metsFile):
 
     filePathArray = buildFilePathList(metsFile)
@@ -373,9 +381,7 @@ xmlschema = etree.XMLSchema(xmlschema_doc)
 
 pathList, metsFileList = buildDirList(sys.argv[1])
 
-
 # for each mets file found on disk, execute all functions and output to [datetime]_report.csv and [datetime]_output.log
-# for pathList, metsFileList in buildDirList(sys.argv[1]):
 for metsFile in metsFileList:   
     
     errorArray = {}
@@ -425,7 +431,6 @@ for metsFile in metsFileList:
     else:
         curatorReportArray[metsFileName]['All files from METS present in package'] = 'No'
     
-    # dirStatusArray = buildDirStatusArray(metsFile)
     errorArray[metsFileName]['files in package not in mets'] = []
     
     for path in dirStatusArray:
