@@ -341,6 +341,11 @@ def logDescMd(xmlin):
 def writeToCuratorReport(reportname,reportarray):
     fields = ['METS filename','Valid METS','/mets:metsHdr/mets:agent[1]/mets:name', '/mets:metsHdr/mets:agent[2]/mets:name', '/mets:metsHdr/mets:agent[3]/mets:name', '/mods:mods/mods:titleInfo/mods:title', '/mods:mods/mods:typeOfResource', '/mods:mods/mods:genre', '/mods:mods/mods:originInfo/mods:dateIssued', '/mods:mods/mods:originInfo/mods:edition', '/mods:mods/mods:language/mods:languageTerm', '/mods:mods/mods:identifier[1]', '/mods:mods/mods:identifier[2]', '/mods:mods/mods:identifier[3]', '/mods:mods/mods:recordInfo/mods:recordContentSource', 'Number of pages', 'All files from METS present in package', 'All files in package present in METS', 'Each page has PDF, JPG, and Alto', 'Technical metadata for each JPG']
     
+    for metsFile in reportarray:
+        for key in list(reportarray[metsFile]):
+            if str(reportarray[metsFile][key]).strip() == '':
+                reportarray[metsFile].pop(key)
+    
     with open(reportname, 'a') as f:
         w = csv.DictWriter(f, fieldnames=fields, lineterminator='\n')
         for key,val in sorted(reportarray.items()):
